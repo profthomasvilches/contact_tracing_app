@@ -19,9 +19,9 @@ Base.@kwdef mutable struct Human
     doi::Int16   = 999   # day of infection.
     iso::Bool = false  ## isolated (limited contacts)
     isovia::Symbol = :null ## isolated via quarantine (:qu), preiso (:pi), intervention measure (:im), or contact tracing (:ct)    
-    #comorbidity::Int8 = 0 ##does the individual has any comorbidity?
+    comorbidity::Int8 = 0 ##does the individual has any comorbidity?
     #vac_status::Int8 = 0 ##
-    #wentto::Int8 = 0
+    wentto::Int8 = 0
     incubationp::Int16 = 0
 
     got_inf::Bool = false
@@ -35,7 +35,6 @@ Base.@kwdef mutable struct Human
     # vaccine::Symbol = :none
     # vaccine_n::Int16 = 0
     # protected::Int16 = 0
-    # days_recovered::Int32 = -1
     # boosted::Bool = false
     # n_boosted::Int8 = 0
     # recvac::Int8 = 0 # 1 - rec , 2 - vac ... this field shows which immunity will be used for protection
@@ -51,18 +50,19 @@ Base.@kwdef mutable struct Human
     daysisolation::Int64 = 999
     # days_after_detection::Int64 = 999
     # positive::Bool = false
-    days_for_pcr::Int32 = -1
     daysinf::Int64 = 999
     tookpcr::Bool = false
     nra::Int16 = 0
     pcrprob::Float64 = 0.0
     test::Bool = false
-    isolate_mild::Bool = false
-    isolate_sev::Bool = false
     isofalse::Bool = false
-    waning::Vector{Float64} = [1.0;1.0]
     # proportion_contacts_workplace::Float64 = 0.0
     totaldaysiso::Int32 = 0  
+    has_app::Bool = false
+    contacts::Vector{Vector{Int16}} = [[0; 0]]
+    ncontacts_day::Int8 = 0
+    tested::Bool = false
+    notified::Bool = false
 end
 
 ## default system parameters
@@ -84,7 +84,8 @@ end
     herd::Int8 = 0 #typemax(Int32) ~ millions
     file_index::Int16 = 0
     
-    
+    app_coverage = 0.0
+    track_days::Int8 = 3
     #the cap for coverage should be 90% for 65+; 95% for HCW; 80% for 50-64; 60% for 16-49; and then 50% for 12-15 (starting from June 1).
     #comor_comp::Float64 = 0.7 #prop comorbidade tomam
     
@@ -94,6 +95,7 @@ end
     ### after calibration, how much do we want to increase the contact rate... in this case, to reach 70%
     ### 0.5*0.95 = 0.475, so we want to multiply this by 1.473684211
     hosp_red::Float64 = 3.1
+    isolation_days::Int64 = 5
     ##for testing
     test_ra::Int64 = 0 #1 - PCR, 2 - Abbott_PanBio 3 - 	BD VERITO	4 - SOFIA
     #prop_working::Float64 = 0.65 #https://www.ontario.ca/document/ontario-employment-reports/april-june-2021#:~:text=Ontario's%20overall%20labour%20force%20participation,years%20and%20over%20at%2038.8%25.
@@ -127,8 +129,6 @@ function runsim(simnum, ip::ModelParameters)
     #ags = [x.ag for x in humans] # store a vector of the age group distribution 
     #ags = [x.ag_new for x in humans] # store a vector of the age group distribution 
     
-    ags = map(x-> x.workplace_idx > 0 ? 1 : 2,humans)
-
     all1 = _collectdf(hmatrix)
     spl = _splitstate(hmatrix, ags)
     work = _collectdf(spl[1])
@@ -187,7 +187,7 @@ function main(ip::ModelParameters,sim::Int64)
     # insert initial infected agents into the model
     # and setup the right swap function. 
 
-
+    #create herd immunity
     herd_immu_dist_4(sim,1)
 
     # split population in agegroups 
@@ -203,39 +203,24 @@ function main(ip::ModelParameters,sim::Int64)
     niso_f_p::Vector{Int64} = zeros(Int64,p.modeltime)
     nleft::Vector{Int64} = zeros(Int64,p.modeltime)
 
+    #insert one infected in the latent status in age group 4
     insert_infected(LAT, p.initialinf, 4)
-    h_init1 = findall(x->x.health_status  in (LAT,MILD,INF,PRE,ASYMP),humans)
+    h_init1 = findall(x->x.health_status  in (LAT,MILD,INF,PRE,ASYMP), humans)
     ## save the preisolation isolation parameters
     #we need the workplaces to get the next days counts
     for x in humans
         get_nextday_counts(x)
     end
     
+    # distributing app_coverage
+    dist_app(humans, p)
+
     # start the time loop
     for st = 1:min((p.start_testing-1),p.modeltime)
         
         for x in humans
             if x.iso && !(x.health_status in (HOS,ICU,DED))
                 x.totaldaysiso += 1
-                if x.isofalse
-                    niso_f_p[st] += 1
-                    if x.workplace_idx > 0
-                        niso_f_w[st] += 1
-                    end
-                else
-                    niso_t_p[st] += 1
-                    if x.workplace_idx > 0
-                        niso_t_w[st] += 1
-                    end
-                end
-                if x.isovia == :sev
-                    if !x.tookpcr#x.daysisolation == 0
-                        x.days_for_pcr = p.days_pcr#rand(1:2)
-                        npcr[st]+=1
-                        x.pcrprob = _get_prob_test(x,1)
-                        x.tookpcr = true
-                    end
-                end
             end
         end
         _get_model_state(st, hmatrix) ## this datacollection needs to be at the start of the for loop
@@ -251,17 +236,6 @@ function main(ip::ModelParameters,sim::Int64)
         for x in humans
             if x.iso && !(x.health_status in (HOS,ICU,DED))
                 x.totaldaysiso += 1
-                if x.isofalse
-                    niso_f_p[st] += 1
-                    if x.workplace_idx > 0
-                        niso_f_w[st] += 1
-                    end
-                else
-                    niso_t_p[st] += 1
-                    if x.workplace_idx > 0
-                        niso_t_w[st] += 1
-                    end
-               end
             end
         end
 
@@ -280,25 +254,7 @@ function main(ip::ModelParameters,sim::Int64)
         for x in humans
             if x.iso && !(x.health_status in (HOS,ICU,DED))
                 x.totaldaysiso += 1
-                if x.isofalse
-                    niso_f_p[st] += 1
-                    if x.workplace_idx > 0
-                        niso_f_w[st] += 1
-                    end
-                else
-                    niso_t_p[st] += 1
-                    if x.workplace_idx > 0
-                        niso_t_w[st] += 1
-                    end
-                end
-                if x.isovia == :sev
-                    if !x.tookpcr#x.daysisolation == 0
-                        x.days_for_pcr = p.days_pcr#rand(1:2)
-                        npcr[st]+=1
-                        x.pcrprob = _get_prob_test(x,1)
-                        x.tookpcr = true
-                    end
-                end
+                
             end
         end
         _get_model_state(st, hmatrix) ## this datacollection needs to be at the start of the for loop
@@ -324,343 +280,18 @@ function work_size() #https://www150.statcan.gc.ca/t1/tbl1/en/cv.action?pid=3310
     return aux,breaks
 end
 
-### I can change it to split basic, mid, and high
-function create_workplace() 
-    #https://www.ontario.ca/document/ontario-employment-reports/april-june-2021#:~:text=Ontario's%20overall%20labour%20force%20participation,years%20and%20over%20at%2038.8%25.
-    groups = [18:24,25:54,55:65]
-    unemp = [0.204;0.069;0.077]
-    pos = map(y->findall(x-> x.age in y,humans),groups)
-    pos1 = map(y->sample(pos[y],Int(round(length(pos[y])*(1-unemp[y]))),replace = false),1:length(pos))
-    pos2 = vcat(pos1...)
-    N = length(pos2)
+
+function dist_app(humans, p)
     
-    probs,breaks = work_size()
-    vaux = map(y-> rand(breaks[rand(probs)]),1:Int(round(p.popsize/10.0)))
-    vvaux = cumsum(vaux)
-    aux = findfirst(y-> y >= N, vvaux)
+    pos = findall(x.age in p.ageintapp[1]:p.ageintapp[2], humans)
+    pos = sample(pos, Int(round(p.app_coverage*p.popsize)))
 
-    aux == nothing && error("increase the number of workplaces")
-
-    vaux = vaux[1:aux]
-    vvaux = vvaux[1:aux]
-
-    vaux[end] = N-vvaux[end-1]
-    
-
-    samples::Vector{Vector{Int64}} = map(y-> [y],1:length(vaux))
-    agebrak_work = [18:24,25:29,30:34,35:39,40:44,45:49,50:54,55:59,60:65]
-    work_prop = [0.4910;0.5825;0.5378;0.4852;0.5039;0.5039;0.4930;0.4501;0.3183]
-    for i = 1:length(samples)
-        xx = sample(pos2,vaux[i],replace=false)
-        pos2 = setdiff(pos2,xx)
-    
-        for j in xx
-            x = humans[j]
-            x.workplace_idx = i
-            aa = findfirst(y-> x.age in y,agebrak_work)
-            if aa != nothing && length(xx) > 1
-                x.proportion_contacts_workplace =  work_prop[aa]
-            end
-        end
-        samples[i] = deepcopy(xx)
+    for i in pos
+        humans[i].has_app = true
     end
-
-
-    return samples
-end 
-
-function select_testing_group(workplaces::Vector{Vector{Int64}},sim::Int64)
-    ### we can change this function to implement different test strategies
-    rng = MersenneTwister(200*sim)
-    if p.scenariotest == 0
-        grp = findall(x-> x.age >= 5, humans)
-        grp_iso_sev = deepcopy(grp)
-        grp_iso_mild = []
-        
-    elseif p.scenariotest == 1
-        grp = findall(x-> x.age >= 5, humans)
-        grp_iso_sev = deepcopy(grp)
-        grp_iso_mild = deepcopy(grp)#sample(rng,grp,Int(round(0.5*length(grp))),replace=false)
-    elseif p.scenariotest == 2
-        grp = findall(x-> x.age >= 5, humans)
-        grp_iso_sev = deepcopy(grp)
-        grp_iso_mild = deepcopy(grp)
-    elseif p.scenariotest == 3
-        wpr = findall(x-> length(x) >= p.size_threshold,workplaces)
-        wpr = sample(rng,wpr,Int(round(p.fwork*length(wpr))),replace=false)
-        grp = vcat(workplaces[wpr]...)
-        grp_iso_sev =  findall(x-> x.age >= 5, humans)
-        grp_iso_mild = deepcopy(grp_iso_sev)
-    elseif p.scenariotest == 4
-        wpr = findall(x-> length(x) >= p.size_threshold,workplaces)
-        wpr = sample(rng,wpr,Int(round(p.fwork*length(wpr))),replace=false)
-        grp = vcat(workplaces[wpr]...)
-        grp_iso_sev =  findall(x-> x.age >= 5, humans)
-        grp_iso_mild = deepcopy(grp_iso_sev)
-    elseif p.scenariotest == 5
-        wpr = findall(x-> length(x) >= p.size_threshold,workplaces)
-        wpr = sample(rng,wpr,Int(round(p.fwork*length(wpr))),replace=false)
-        grp = vcat(workplaces[wpr]...)
-        grp_iso_sev =  findall(x-> x.age >= 5, humans)
-        grp_iso_mild = deepcopy(grp_iso_sev)
-    elseif p.scenariotest == 999
-        grp = []
-        grp_iso_sev = deepcopy(grp)
-        grp_iso_mild = deepcopy(grp)
-    else
-        error("error in testing group")
-    end
-    
-    for i in grp
-        humans[i].test = true
-    end
-
-    for i in grp_iso_sev
-        humans[i].isolate_sev = true
-    end
-
-    for i in grp_iso_mild
-        humans[i].isolate_mild = true
-    end
-
-    return grp
-end
-
-function testing(dayweek)
-    npcr::Int64 = 0
-    nra::Int64 = 0
-    nleft::Int64 = 0
-    if p.scenariotest == 0
-        for x in humans
-            x.days_for_pcr -= 1
-            if x.isovia == :sev
-                if !x.tookpcr#x.daysisolation == 0
-                    x.days_for_pcr = p.days_pcr#rand(1:2)
-                    npcr+=1
-                    x.pcrprob = _get_prob_test(x,1)
-                    x.tookpcr = true
-                end
-            end
-        end
-    elseif p.scenariotest == 1
-        for x in humans
-            x.days_for_pcr -= 1
-            if x.isovia == :sev
-                if !x.tookpcr#x.daysisolation == 0
-                    x.days_for_pcr = p.days_pcr#rand(1:2)
-                    npcr+=1
-                    x.pcrprob = _get_prob_test(x,1)
-                    x.tookpcr = true
-                
-                end
-            elseif x.isovia == :mild
-                if !x.tookpcr#x.daysisolation == 0
-                    x.days_for_pcr = p.days_pcr#rand(1:2)
-                    npcr+=1
-                    x.pcrprob = _get_prob_test(x,1)
-                    x.tookpcr = true
-                elseif x.days_for_pcr == 0
-                    if rand() > x.pcrprob
-                        x.daysisolation = 999
-                        x.tookpcr = false
-                        x.days_after_detection = 999
-                        nleft += 1
-                    else 
-                        x.positive = true
-                    end
-                end
-            end
-        end
-    elseif p.scenariotest == 2
-        for x in humans
-            x.days_for_pcr -= 1
-            if x.isovia == :sev
-                if !x.tookpcr#x.daysisolation == 0
-                    x.days_for_pcr = p.days_pcr#rand(1:2)
-                    npcr+=1
-                    x.pcrprob = _get_prob_test(x,1)
-                    x.tookpcr = true
-                
-                end
-            end
-        end
-    elseif p.scenariotest == 3
-        for x in humans
-            x.days_for_pcr -= 1
-            if x.isovia == :sev
-                if !x.tookpcr#x.daysisolation == 0
-                    x.days_for_pcr = p.days_pcr#rand(1:2)
-                    npcr+=1
-                    x.pcrprob = _get_prob_test(x,1)
-                    x.tookpcr = true
-                
-                end
-                
-            elseif x.test && !x.iso
-                if dayweek in p.testing_days
-                    if x.days_after_detection > p.days_ex_test
-                        pp = _get_prob_test(x,p.test_ra)
-                        if rand() < pp
-                            x.positive = true
-                            _set_isolation(x,true,:test)
-                            x.isofalse = x.health_status in (SUS,REC) ? true : false
-                        end
-                    end
-                    x.nra += 1
-                    nra += 1
-                end
-            end
-        end
-    elseif p.scenariotest == 4
-        for x in humans
-            x.days_for_pcr -= 1
-            if x.isovia == :sev
-                if !x.tookpcr#x.daysisolation == 0
-                    x.days_for_pcr = p.days_pcr#rand(1:2)
-                    npcr+=1
-                    x.pcrprob = _get_prob_test(x,1)
-                    x.tookpcr = true
-               
-                end
-                
-            elseif x.test
-                if !x.iso
-                    if dayweek in p.testing_days
-                        if x.days_after_detection > p.days_ex_test
-                            pp = _get_prob_test(x,p.test_ra)
-                            if rand() < pp
-                                x.positive = true
-                                _set_isolation(x,true,:test)
-                                
-                                x.tookpcr = true
-                                x.days_for_pcr = p.days_pcr#rand(1:2)
-                                npcr+=1
-                                x.pcrprob = _get_prob_test(x,1)
-                                x.isofalse = x.health_status in (SUS,REC) ? true : false
-                            end
-                        end
-                        x.nra += 1
-                        nra += 1
-                    end
-                else
-                    if x.days_for_pcr == 0
-                        if rand() > x.pcrprob
-                            x.daysisolation = 999
-                            x.tookpcr = false
-                            x.days_after_detection = 999
-                            nleft += Int(!(x.health_status in (SUS,REC)))
-                        else
-                            x.positive = true
-                        end
-                    end
-                end
-                
-            end
-        end
-    elseif p.scenariotest == 5
-        for x in humans
-            x.days_for_pcr -= 1
-            if x.isovia == :sev
-                if !x.tookpcr#x.daysisolation == 0
-                    x.days_for_pcr = p.days_pcr#rand(1:2)
-                    npcr+=1
-                    x.pcrprob = _get_prob_test(x,1)
-                    x.tookpcr = true
-               
-                end
-                
-            elseif x.test
-                if !x.iso
-                    if dayweek in p.testing_days
-                        if x.days_after_detection > p.days_ex_test
-                            pp = _get_prob_test(x,p.test_ra)
-                            if rand() < pp
-                                x.positive = true
-                                _set_isolation(x,true,:test)
-                                
-                                x.tookpcr = true
-                                x.days_for_pcr = p.days_pcr#rand(1:2)
-                                npcr+=1
-                                x.pcrprob = _get_prob_test(x,1)
-                                x.isofalse = x.health_status in (SUS,REC) ? true : false
-                            end
-                        end
-                        x.nra += 1
-                        nra += 1
-                    end
-                else
-                    if x.days_for_pcr == 0
-                        pp = _get_prob_test(x,p.test_ra)
-                        if rand() > pp
-                            x.daysisolation = 999
-                            x.tookpcr = false
-                            x.days_after_detection = 999
-                            nleft += Int(!(x.health_status in (SUS,REC)))
-                        else
-                            x.positive = true
-                        end
-                    end
-                end
-                
-            end
-        end
-    elseif p.scenariotest == 999
-
-    else
-        error("no scenario")
-    end
-
-
-    return nra,npcr,nleft
 end
 
 
-
-function waning_immunity(x::Human)
-    index = Int(floor(x.days_vac/7))
-    if index > 0
-        if index <= size(waning_factors,1)
-            waning = [waning_factors[index,x.vaccine_n]^p.waning; waning_factors[index,x.vaccine_n+2]^p.waning]
-        else
-            waning = [waning_factors[end,x.vaccine_n]^p.waning; waning_factors[end,x.vaccine_n+2]^p.waning]
-        end
-    else
-        waning = [1.0;1.0]
-    end
-
-    return waning
-end
-
-function vac_update(x::Human)
-    
-    if x.vac_status == 1
-        #x.index_day == 2 && error("saiu com indice 2")
-        if x.days_vac == p.days_to_protection[x.vaccine_n][x.vac_status][1]#14
-            x.protected = 1
-            x.index_day = min(length(p.days_to_protection[x.vaccine_n][x.vac_status]),x.index_day+1)
-        elseif x.days_vac == p.days_to_protection[x.vaccine_n][x.vac_status][x.index_day]#14
-            x.protected = x.index_day
-            x.index_day = min(length(p.days_to_protection[x.vaccine_n][x.vac_status]),x.index_day+1)
-        end
-        
-        x.waning = waning_immunity(x)
-        x.days_vac += 1
-
-    elseif x.vac_status == 2
-        if x.days_vac == p.days_to_protection[x.vaccine_n][x.vac_status][1] && !x.boosted#0
-            x.protected = 1
-            x.index_day = min(length(p.days_to_protection[x.vaccine_n][x.vac_status]),x.index_day+1)
-
-        elseif x.days_vac == p.days_to_protection[x.vaccine_n][x.vac_status][x.index_day]#7
-            x.protected = x.index_day
-            x.index_day = min(length(p.days_to_protection[x.vaccine_n][x.vac_status]),x.index_day+1)
-        end
-        
-        x.waning = waning_immunity(x)
-        x.days_vac += 1
-    end
-   
-end
 function reset_params(ip::ModelParameters)
     # the p is a global const
     # the ip is an incoming different instance of parameters 
@@ -792,7 +423,6 @@ function herd_immu_dist_4(sim::Int64,strain::Int64)
             move_to_recovered(humans[i])
             r = rand()
             day = rand(dprob)
-            humans[i].days_recovered = day
             humans[i].sickfrom = INF
             humans[i].herd_im = true
         end
@@ -871,6 +501,7 @@ function initialize()
         #x.dur = sample_epi_durations() # sample epi periods   
         x.comorbidity = comorbidity(x.age)
         # initialize the next day counts (this is important in initialization since dyntrans runs first)
+        x.contacts = repeat([[0]], p.track_days)
         
     end
 end
@@ -886,12 +517,6 @@ function insert_infected(health, num, ag)
     ## inserts a number of infected people in the population randomly
     ## this function should resemble move_to_inf()
     l = findall(x -> x.health == SUS && x.ag == ag, humans)
-    aux_pre = [PRE;PRE2;PRE3]
-    aux_lat = [LAT;LAT2;LAT3]
-    aux_mild = [MILD;MILD2;MILD3]
-    aux_inf = [INF;INF2;INF3]
-    aux_asymp = [ASYMP;ASYMP2;ASYMP3]
-    aux_rec = [REC;REC2;REC3]
     if length(l) > 0 && num < length(l)
         h = sample(l, num; replace = false)
         @inbounds for i in h 
@@ -900,35 +525,35 @@ function insert_infected(health, num, ag)
             x.dur = sample_epi_durations(x)
             if x.strain > 0
                 if health == PRE
-                    x.swap = aux_pre[x.strain]
+                    x.swap = health
                     x.swap_status = PRE
                     x.daysinf = x.dur[1]+1
                     x.wentto = 1
                     move_to_pre(x) ## the swap may be asymp, mild, or severe, but we can force severe in the time_update function
                 elseif health == LAT
-                    x.swap = aux_lat[x.strain]
+                    x.swap = health
                     x.swap_status = LAT
                     x.daysinf = rand(1:x.dur[1])
                     move_to_latent(x)
                 elseif health == MILD
-                    x.swap =  aux_mild[x.strain] 
+                    x.swap = health
                     x.swap_status = MILD
                     x.wentto = 1
                     x.daysinf = x.dur[2]+1
                     move_to_mild(x)
                 elseif health == INF
-                    x.swap = aux_inf[x.strain]
+                    x.swap = health
                     x.swap_status = INF
                     x.wentto = 1
                     move_to_inf(x)
                 elseif health == ASYMP
-                    x.swap = aux_asymp[x.strain]
+                    x.swap = health
                     x.swap_status = ASYMP
                     x.wentto = 2
                     move_to_asymp(x)
                 elseif health == REC 
+                    x.swap = health
                     x.swap_status = REC
-                    x.swap = aux_rec[x.strain]
                     x.wentto = rand(1:2)
                     move_to_recovered(x)
                 else 
@@ -951,12 +576,19 @@ function time_update()
 
     nra::Int64 = 0
     
+
+    for x in humans
+        if x.notified
+            testing_infection(x, p.test_ra)
+            x.notified = false
+        end
+    end
+
     for x in humans 
         x.tis += 1 
         x.doi += 1 # increase day of infection. variable is garbage until person is latent
          
         x.daysinf += 1
-        x.days_recovered += 1 # We don't care about this up to the recovery
         x.days_after_detection += 1 #we don't care about this untill the individual is detected
         x.daysisolation += 1
         
@@ -979,9 +611,9 @@ function time_update()
         #if the individual recovers, we need to set they free. This loop must be here
         if x.iso && x.daysisolation >= p.isolation_days && !(x.health_status in (HOS,ICU,DED))
             _set_isolation(x,false,:null)
-            x.positive = false
-            x.tookpcr = false
-            x.isofalse = false
+            if x.tested # if the individual was tested and the days of isolation is finished, we can return the tested to false
+                x.tested = false
+            end
         end
         # run covid-19 functions for other integrated dynamics. 
         #ct_dynamics(x)
@@ -990,19 +622,7 @@ function time_update()
         
     end
 
-    #= 
-        (lat,lat2,lat3,lat4,lat5,lat6) = lat_v
-        (mild,mild2,mild3,mild4,mild5,mild6) = mild_v
-        (miso,miso2,miso3,miso4,miso5,miso6) = miso_v
-        (inf,inf2,inf3,inf4,inf5,inf6) = inf_v
-        (infiso,infiso2,infiso3,infiso4,infiso5,infiso6) = infiso_v
-        (hos,hos2,hos3,hos4,hos5,hos6) = hos_v
-        (icu,icu2,icu3,icu4,icu5,icu6) = icu_v
-        (rec,rec2,rec3,rec4,rec5,rec6) = rec_v
-        (ded,ded2,ded3,ded4,ded5,ded6) = ded_v
-    =#
-    #return (lat, mild, miso, inf, infiso, hos, icu, rec, ded,lat2, mild2, miso2, inf2, infiso2, hos2, icu2, rec2, ded2,lat3, mild3, miso3, inf3, infiso3, hos3, icu3, rec3, ded3, lat4, mild4, miso4, inf4, infiso4, hos4, icu4, rec4, ded4, lat5, mild5, miso5, inf5, infiso5, hos5, icu5, rec5, ded5, lat6, mild6, miso6, inf6, infiso6, hos6, icu6, rec6, ded6)
-    return nra
+   return nra
 end
 export time_update
 
@@ -1119,10 +739,27 @@ function move_to_pre(x::Human)
         x.swap = MILD
         x.swap_status = MILD
     end
-    # calculate whether person is isolated
-    #rand() < p.fpreiso && _set_isolation(x, true, :pi)
+    
 end
 export move_to_pre
+
+function testing_infection(x::Human, teste)
+    x.tested = true
+    pp = _get_prob_test(x,teste)
+    if rand() < pp
+        _set_isolation(x, true, :test)
+        send_notification(x)
+    end
+end
+
+function send_notification(x::human)
+    v = vcat(x.contacts...)
+
+    for i in v
+        humans[i].notified = true
+    end
+
+end
 
 function move_to_mild(x::Human)
     ## transfers human h to the mild infection stage for γ days
@@ -1143,20 +780,10 @@ function move_to_mild(x::Human)
     #   and not go through the mild compartment 
     nra = 0
     
-    if !x.iso
-        rng = MersenneTwister(246*x.dur[1]*x.dur[2]*x.dur[3])
-        #x.swap = x.strain == 1 ? MISO : MISO2  
-        if p.testing && x.isolate_mild && rand(rng) < p.fmild
-            if p.scenariotest >= 2
-                nra = 1
-                if rand() < _get_prob_test(x,p.test_ra)
-                    _set_isolation(x, true, :mild)
-                end
-            else
-                _set_isolation(x, true, :mild)
-            end
-        end
+    if !x.tested && x.has_app
+        testing_infection(x, p.test_ra)
     end
+
     return nra
 end
 export move_to_mild
@@ -1170,7 +797,10 @@ function move_to_inf(x::Human)
     gg = findfirst(y-> x.age in y,groups)
 
     mh = [0.0002; 0.0015; 0.011; 0.0802; 0.381] # death rate for severe cases.
-   
+    comh = 0.98
+
+    h = x.comorbidity == 1 ? comh : 0.04 #0.376
+    c = x.comorbidity == 1 ? 0.396 : 0.25
 
     time_to_hospital = Int(round(rand(Uniform(2, 5)))) # duration symptom onset to hospitalization
    	
@@ -1180,7 +810,9 @@ function move_to_inf(x::Human)
     
     x.tis = 0 
     
-    x.isolate_sev && _set_isolation(x, true, :sev)
+    if !x.tested && x.has_app
+        testing_infection(x, p.test_ra)
+    end
 
     if rand() < h     # going to hospital or ICU but will spend delta time transmissing the disease with full contacts 
         x.exp = time_to_hospital
@@ -1195,8 +827,7 @@ function move_to_inf(x::Human)
         end
        
     else ## no hospital for this lucky (but severe) individual 
-        aux = 0.0
-        if rand() < mh[gg]*aux
+        if rand() < mh[gg]
             x.exp = x.dur[4] 
             x.swap = DED
             x.swap_status = DED
@@ -1290,17 +921,15 @@ function move_to_recovered(h::Human)
     h.health_status = h.swap_status
     
     h.recovered = true
-    h.days_recovered = 0
 
     h.swap = UNDEF
     h.swap_status = UNDEF
     h.tis = 0 
     h.exp = 999 ## stay recovered indefinitely
     #h.iso = false ## a recovered person has ability to meet others
-    h.recvac = 1
+   
     #h.daysinf = 999
-    
-    #_set_isolation(h, false)  # do not set the isovia property here.  
+    h.got_inf = false
     # isolation property has no effect in contact dynamics anyways (unless x == SUS)
 end
 
@@ -1347,6 +976,12 @@ export _get_betavalue
         x.nextday_meetcnt = 0
     end
    
+    for i in 2:p.track_days
+        x.contacts[i] = deepcopy(x.contacts[i-1])
+    end
+    x.contacts[1] = repeat([0], max(x.nextday_meetcnt, 1))
+    x.ncontacts_day = 0
+
     return cnt
 end
 
@@ -1370,8 +1005,6 @@ function dyntrans(sys_time, grps,sim)
 
             
             perform_contacts(x,gpw,grps,xhealth)
-            
-
                       
         end
     end
@@ -1392,20 +1025,19 @@ function perform_contacts(x,gpw,grp_sample,xhealth)
             
             y.nextday_meetcnt = y.nextday_meetcnt - min(1,ycnt) # remove a contact
 
-            
             ycnt == 0 && continue
             
-            
+            if y.has_app && x.has_app
+                x.ncontacts_day = x.ncontacts_day+1
+                x.contacts[1][x.ncontacts_day] = y.idx
+            end
             #adj_beta = 0 # adjusted beta value by strain and vaccine efficacy
-            aux = 0
             if y.health == SUS && y.swap == UNDEF
                 
                 beta = _get_betavalue(xhealth)
                 
             elseif y.health_status == REC && y.swap == UNDEF
-                index = Int(floor(y.days_recovered/7))
-                aux_red = 0.0
-            
+                            
                 beta = _get_betavalue(xhealth)
             else
                 beta = 0.0
@@ -1489,4 +1121,4 @@ end
 #const vac_rate_2 = vaccination_rate_2()
 ## references: 
 # critical care capacity in Canada https://www.ncbi.nlm.nih.gov/pubmed/25888116
-end # module end
+end

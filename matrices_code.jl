@@ -806,7 +806,9 @@ function _get_prob_test(x::Human,test::Int64)
     M = get_matrix(x,test)
     pp = [0.001 0.002 0.002 0.002]
     #1 - RT-PCR, 2 - Abbott_PanBio 3 - BTNX_Rapid_Response	4 - Artron
-    if x.daysinf+1 > size(M,2)
+    if !x.got_inf
+        prob = 0
+    elseif x.daysinf+1 > size(M,2)
         d = 1
         #[0.005 0.015 0.015 0.015]
         prob = pp[1,test]
@@ -816,7 +818,7 @@ function _get_prob_test(x::Human,test::Int64)
         d = x.daysinf+1 #first row is 0
         prob = M[x.incubationp,d]
 
-        prob = prob*(p.asymp_red^(x.wentto-1))
+        prob = x.wentto > 0 ? prob*(p.asymp_red^(x.wentto-1)) : prob
 
         prob = max(prob,pp[1,test])
 
