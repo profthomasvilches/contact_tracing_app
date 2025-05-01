@@ -1,9 +1,20 @@
 module covid19abm
 
 # Edit: 2025.05.01
+# Any edits that I make will include "#Taiye:".
 using Base
 using Parameters, Distributions, StatsBase, StaticArrays, Random, Match, DataFrames
-@enum HEALTH SUS LAT PRE ASYMP MILD MISO INF IISO HOS ICU REC DED UNDEF
+# @enum HEALTH SUS LAT PRE ASYMP MILD MISO INF IISO HOS ICU REC DED UNDEF
+@enum HEALTH SUS LAT PRE ASYMP INF UNDEF # Taiye: MILD MISO IISO HOS ICU REC DED
+# Taiye: I commented out hospital and ICU patients because my understanding is that the tests
+# should be self-administered. Seyed also pointed out that their inclusion would overcomplicate 
+# the model. Consequently, MILD, MISO and IISO are also removed because the severity of the 
+# symptoms is not relevant.
+# Taiye: Deceased and recovered individuals will not report the virus. 
+# Taiye: If we assume that the disease can be contracted more than once, recovered individuals
+# could be included in the symptomatic class and otherwise, removed from the population. We could
+# create a REM (removed) class for these two groups.
+
 Base.@kwdef mutable struct Human
     idx::Int64 = 0 
     health::HEALTH = SUS
@@ -20,20 +31,30 @@ Base.@kwdef mutable struct Human
     dur::NTuple{4, Int8} = (0, 0, 0, 0)   # Order: (latents, asymps, pres, infs) TURN TO NAMED TUPS LATER
     doi::Int16   = 999   # day of infection.
     iso::Bool = false  ## isolated (limited contacts)
-    isovia::Symbol = :null ## isolated via quarantine (:qu), preiso (:pi), intervention measure (:im), or contact tracing (:ct)    
-    comorbidity::Int8 = 0 ##does the individual has any comorbidity?
+    # isovia::Symbol = :null ## isolated via quarantine (:qu), preiso (:pi), intervention measure (:im), or contact tracing (:ct)    
+    # Taiye: I do not think that this category is necessary because we are assuming that individuals will isolate solely through contact tracing.
+    
+    #comorbidity::Int8 = 0 ##does the individual has any comorbidity?
+    # Taiye: We are not considering comorbidities at this stage.
+
     #vac_status::Int8 = 0 ##
     wentto::Int8 = 0
     incubationp::Int16 = 0
 
     got_inf::Bool = false
-    herd_im::Bool = false
+    
+    # herd_im::Bool = false
+    # Taiye: We are not considering herd immunity at this stage.
+
     ag_new::Int16 = -1
-    days_vac::Int16 = -1
+    
+    # days_vac::Int16 = -1
+    # Taiye: We are not considering vaccinations at this stage.
+
     #strain::Int16 = -1
     index_day::Int16 = 1
    
-    recovered::Bool = false
+    recovered::Bool = false # Taiye: This might not be necessary.
     # vaccine::Symbol = :none
     # vaccine_n::Int16 = 0
     # protected::Int16 = 0
@@ -49,16 +70,24 @@ Base.@kwdef mutable struct Human
 
     #### for testing
 
-    daysisolation::Int64 = 999
+    # daysisolation::Int64 = 999 # Taiye: This might not be necessary.
+
     # days_after_detection::Int64 = 999
     # positive::Bool = false
-    daysinf::Int64 = 999
-    tookpcr::Bool = false
+
+    # daysinf::Int64 = 999 # Taiye: This might not be necessary.
+
+    # tookpcr::Bool = false # Taiye: We are assuming that once the notification is received, an individual will test.
+    
     nra::Int16 = 0
     pcrprob::Float64 = 0.0
     test::Bool = false
-    isofalse::Bool = false
+
+    # isofalse::Bool = false
+    # Taiye: I believe that this might be unnecessary since we are assuming that individuals isolate upon testing positive.
+
     # proportion_contacts_workplace::Float64 = 0.0
+
     totaldaysiso::Int32 = 0  
     has_app::Bool = false
     contacts::Vector{Vector{Int16}} = [[0; 0]]
@@ -80,11 +109,16 @@ end
     modeltime::Int64 = 435
     initialinf::Int64 = 1
     fmild::Float64 = 0.5  ## percent of people practice self-isolation
+    # Taiye: Could be useful later for keeping track of the population in isolation.
+
     fsevere::Float64 = 1.0 #
     frelasymp::Float64 = 0.26 ## relative transmission of asymptomatic
     fctcapture::Float16 = 0.0 ## how many symptomatic people identified
     #vaccine_ef::Float16 = 0.0   ## change this to Float32 typemax(Float32) typemax(Float64)
-    herd::Int8 = 0 #typemax(Int32) ~ millions
+    
+    # herd::Int8 = 0 #typemax(Int32) ~ millions
+    # Taiye: We are not considering herd immunity at this stage.
+
     file_index::Int16 = 0
     
     app_coverage = 0.0
@@ -93,15 +127,19 @@ end
     #comor_comp::Float64 = 0.7 #prop comorbidade tomam
     
     #one waning rate for each efficacy? For each strain? I can change this structure based on that
-    reduce_days::Int64 = 0
-    waning::Int64 = 1
+    # reduce_days::Int64 = 0 # Taiye: We are not considering waning.
+    # waning::Int64 = 1 # Taiye: We are not considering waning.
+
     ### after calibration, how much do we want to increase the contact rate... in this case, to reach 70%
     ### 0.5*0.95 = 0.475, so we want to multiply this by 1.473684211
-    hosp_red::Float64 = 3.1
+
+    # hosp_red::Float64 = 3.1 # Taiye: We can add this if we decide to include hospitalizations.
     isolation_days::Int64 = 5
     ageintapp::Vector{Int64} = [10; 60]
     ##for testing
-    test_ra::Int64 = 0 #1 - PCR, 2 - Abbott_PanBio 3 - 	BD VERITO	4 - SOFIA
+    # test_ra::Int64 = 0 #1 - PCR, 2 - Abbott_PanBio 3 - 	BD VERITO	4 - SOFIA
+    # Taiye: I believe that PCR tests are the only ones being considered.
+
     time_until_testing::Int64 = 1
     #prop_working::Float64 = 0.65 #https://www.ontario.ca/document/ontario-employment-reports/april-june-2021#:~:text=Ontario's%20overall%20labour%20force%20participation,years%20and%20over%20at%2038.8%25.
 end
@@ -117,8 +155,10 @@ const p = ModelParameters()  ## setup default parameters
 const agebraks = @SVector [0:4, 5:19, 20:49, 50:64, 65:99]
 #const agebraks_vac = @SVector [0:0,1:4,5:14,15:24,25:44,45:64,65:74,75:100]
 const BETAS = Array{Float64, 1}(undef, 0) ## to hold betas (whether fixed or seasonal), array will get resized
-const waning_factors = waning_factor()
-const waning_factors_rec = waning_factor()
+
+# const waning_factors = waning_factor() # Taiye: We are not considering waning.
+# const waning_factors_rec = waning_factor() # Taiye: We are not considering waning.
+
 export ModelParameters, HEALTH, Human, humans, BETAS
 
 function runsim(simnum, ip::ModelParameters)
@@ -192,7 +232,7 @@ function main(ip::ModelParameters,sim::Int64)
     # and setup the right swap function. 
 
     #create herd immunity
-    herd_immu_dist_4(sim,1)
+    # herd_immu_dist_4(sim,1) # Taiye: We are not considering herd immunity.
 
     # split population in agegroups 
     grps = get_ag_dist()
@@ -205,7 +245,10 @@ function main(ip::ModelParameters,sim::Int64)
 
     #insert one infected in the latent status in age group 4
     insert_infected(LAT, p.initialinf, 4)
-    h_init1 = findall(x->x.health_status  in (LAT,MILD,INF,PRE,ASYMP), humans)
+
+    # h_init1 = findall(x->x.health_status  in (LAT,MILD,INF,PRE,ASYMP), humans) # Taiye: MILD is unnecessary.
+    h_init1 = findall(x->x.health_status  in (LAT,INF,PRE,ASYMP), humans)
+    
     ## save the preisolation isolation parameters
     #we need the workplaces to get the next days counts
     for x in humans
@@ -219,7 +262,8 @@ function main(ip::ModelParameters,sim::Int64)
     for st = 1:min((p.start_testing-1),p.modeltime)
         
         for x in humans
-            if x.iso && !(x.health_status in (HOS,ICU,DED))
+    #        if x.iso && !(x.health_status in (HOS,ICU,DED)) # Taiye: Depends on whether we are considering HOS, ICU and DED.
+            if x.iso #&& !(x.health_status in (HOS,ICU,DED))
                 x.totaldaysiso += 1
             end
         end
@@ -234,7 +278,8 @@ function main(ip::ModelParameters,sim::Int64)
     for st = p.start_testing:min((p.start_testing+p.test_for-1),p.modeltime)
         
         for x in humans
-            if x.iso && !(x.health_status in (HOS,ICU,DED))
+            # if x.iso && !(x.health_status in (HOS,ICU,DED)) # Taiye: Depends on whether we are considering HOS, ICU and DED.
+            if x.iso #&& !(x.health_status in (HOS,ICU,DED))
                 x.totaldaysiso += 1
             end
         end
@@ -251,7 +296,8 @@ function main(ip::ModelParameters,sim::Int64)
     for st = (p.start_testing+p.test_for):p.modeltime
         initial_dw = st+(p.initial_day_week-1)-7*Int(floor((st-1+(p.initial_day_week-1))/7))
         for x in humans
-            if x.iso && !(x.health_status in (HOS,ICU,DED))
+            # if x.iso && !(x.health_status in (HOS,ICU,DED)) # Taiye: Depends on whether we are considering HOS, ICU and DED.
+            if x.iso #&& !(x.health_status in (HOS,ICU,DED))
                 x.totaldaysiso += 1
                 
             end
@@ -358,6 +404,7 @@ function _get_incidence_and_prev(hmatrix)
     end
     return inc, pre
 end
+# Checkpoint
 
 function _get_column_incidence(hmatrix, hcol)
     inth = Int(hcol)
