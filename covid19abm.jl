@@ -912,7 +912,7 @@ function move_to_inf(x::Human)
    # end
     ## before returning, check if swap is set 
     #x.swap == UNDEF && error("agent I -> ?")
-#end
+end
 
 # Taiye: This function might be unnecessary.
 #function move_to_hospicu(x::Human)   
