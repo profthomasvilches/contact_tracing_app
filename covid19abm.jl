@@ -138,7 +138,7 @@ end
     isolation_days::Int64 = 5
     ageintapp::Vector{Int64} = [10; 60]
     ##for testing
-    # test_ra::Int64 = 0 #1 - PCR, 2 - Abbott_PanBio 3 - 	BD VERITO	4 - SOFIA
+    test_ra::Int64 = 0 #1 - PCR, 2 - Abbott_PanBio 3 - 	BD VERITO	4 - SOFIA
     # Taiye: I believe that PCR tests are the only ones being considered.
 
     time_until_testing::Int64 = 1
