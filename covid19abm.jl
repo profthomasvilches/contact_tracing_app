@@ -700,8 +700,10 @@ function time_update()
         # if x.iso && x.daysisolation >= p.isolation_days && !(x.health_status in (HOS,ICU,DED))
         if x.iso && x.daysisolation >= p.isolation_days && !(x.health_status in (DED)) 
             _set_isolation(x,false,:null)
-            x.n_tests_perf = 0 # Taiye
             
+            x.n_tests_perf = 0 # Taiye
+            x.testedpos = false # Taiye
+
             # if x.testedpos # if the individual was tested and the days of isolation is finished, we can return the tested to false
             #     x.testedpos = false
             # end
