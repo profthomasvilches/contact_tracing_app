@@ -850,7 +850,8 @@ function testing_infection(x::Human, teste)
     if rand() < pp
         x.testedpos = true
         _set_isolation(x, true, :test)
-        send_notification(x)
+
+        send_notifications(x)
 
     else # Taiye: counting the number of negative tests performed.
           x.n_neg_tests += 1
@@ -860,11 +861,12 @@ end
 
 function send_notification(x::human)
     v = vcat(x.contacts...)
-
+    
     for i in v
-        humans[i].notified = true
-        humans[i].timetotest = p.time_until_testing
-
+        if humans[i].notified == false # Taiye: To avoid new notifications resetting times.
+            humans[i].notified = true
+            humans[i].timetotest = p.time_until_testing
+        end
         #humans[i].time_since_testing = 0#p.time_between_tests # Taiye
     end
 
