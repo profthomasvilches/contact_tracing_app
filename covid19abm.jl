@@ -5,7 +5,7 @@ module covid19abm
 # - if someone tested negative, they will test again and again until the number is reached or is positive
 # - be careful: new notification cannot set the times to zero if someone is in a series of testing
 
-# Edit: 2025.05.12
+# Edit: 2025.05.15
 # Any edits that I make will include "#Taiye:".
 using Base
 using Parameters, Distributions, StatsBase, StaticArrays, Random, Match, DataFrames
@@ -100,6 +100,8 @@ Base.@kwdef mutable struct Human
     timetotest::Int64 = -1
     n_tests_perf::Int64 = 0
     time_since_testing::Int64 = 0
+
+    n_neg_tests::Int64 = 0 # Taiye
 end
 
 ## default system parameters
@@ -149,6 +151,8 @@ end
     #prop_working::Float64 = 0.65 #https://www.ontario.ca/document/ontario-employment-reports/april-june-2021#:~:text=Ontario's%20overall%20labour%20force%20participation,years%20and%20over%20at%2038.8%25.
     n_tests::Int64 = 2
     time_between_tests::Int64 = 0
+
+    #n_neg_tests::Int64 = 0 # Taiye
 end
 
 
@@ -653,7 +657,7 @@ function time_update()
     
     if p.testing
         for x in humans
-            if x.notified && x.n_tests_perf < p.n_tests && x.timetotest == 0 && x.time_since_testing >= p.time_between_tests
+            if x.notified && x.n_tests_perf <= p.n_tests && x.timetotest == 0 && x.time_since_testing >= p.time_between_tests && x.n_neg_tests <= x.n_tests_perf # Taiye
                 testing_infection(x, p.test_ra)
                 
                 x.time_since_testing = 0
@@ -703,6 +707,7 @@ function time_update()
             
             x.n_tests_perf = 0 # Taiye
             x.testedpos = false # Taiye
+            x.n_neg_tests = 0 # Taiye
 
             # if x.testedpos # if the individual was tested and the days of isolation is finished, we can return the tested to false
             #     x.testedpos = false
@@ -839,7 +844,6 @@ function move_to_pre(x::Human)
     
 end
 export move_to_pre
-# Checkpoint
 
 function testing_infection(x::Human, teste)
     pp = _get_prob_test(x,teste)
@@ -847,7 +851,11 @@ function testing_infection(x::Human, teste)
         x.testedpos = true
         _set_isolation(x, true, :test)
         send_notification(x)
+
+    else # Taiye: counting the number of negative tests performed.
+          x.n_neg_tests += 1
     end
+
 end
 
 function send_notification(x::human)
@@ -936,15 +944,15 @@ function move_to_inf(x::Human)
       #  end
        
    # else ## no hospital for this lucky (but severe) individual 
-    #    if rand() < mh[gg]
-     #       x.exp = x.dur[4] 
-      #      x.swap = DED
-       #     x.swap_status = DED
-        #else 
-         #   x.exp = x.dur[4]  
-          #  x.swap = REC
-           # x.swap_status = REC
-        #end
+    if rand() < mh[gg]
+            x.exp = x.dur[4] 
+            x.swap = DED
+            x.swap_status = DED
+    else 
+            x.exp = x.dur[4]  
+            x.swap = REC
+            x.swap_status = REC
+    end
          
    # end
     ## before returning, check if swap is set 
