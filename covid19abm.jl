@@ -706,7 +706,6 @@ function time_update()
             _set_isolation(x,false,:null)
             
             x.n_tests_perf = 0 # Taiye
-            x.testedpos = false # Taiye
             x.n_neg_tests = 0 # Taiye
 
             # if x.testedpos # if the individual was tested and the days of isolation is finished, we can return the tested to false
@@ -1089,7 +1088,7 @@ export _get_betavalue
         cnt = rand(negative_binomials(ag,aux)) ##using the contact average for shelter-in
         
         x.nextday_meetcnt = cnt
-    elseif !(x.health_status  in (HOS,ICU,DED))
+    # elseif !(x.health_status  in (HOS,ICU,DED)) # Taiye
         cnt = rand(negative_binomials_shelter(ag,p.contact_change_2))  # expensive operation, try to optimize
         x.nextday_meetcnt_w = 0
         x.nextday_meetcnt = cnt
@@ -1101,7 +1100,8 @@ export _get_betavalue
         x.nextday_meetcnt = 0
     end
 
-    if x.health_status in (HOS,ICU,DED)
+    # if x.health_status in (HOS,ICU,DED) # Taiye
+    if x.health_status in (DED)
         x.nextday_meetcnt = 0
     end
    
