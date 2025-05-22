@@ -5,12 +5,7 @@ module covid19abm
 # - if someone tested negative, they will test again and again until the number is reached or is positive
 # - be careful: new notification cannot set the times to zero if someone is in a series of testing
 
-<<<<<<< HEAD
 # Edit: 2025.05.22
-=======
-# Edit: 2025.05.16
->>>>>>> 4b224fc726a13cfe24697ce0ace0535cc638f2bf
->>>>>>> e73bf0e6a35f3d3abbcb845e7df67971ae33d824
 # Any edits that I make will include "#Taiye:".
 using Base
 using Parameters, Distributions, StatsBase, StaticArrays, Random, Match, DataFrames
@@ -42,11 +37,7 @@ Base.@kwdef mutable struct Human
     doi::Int16   = 999   # day of infection.
     iso::Bool = false  ## isolated (limited contacts)
     isovia::Symbol = :null ## isolated via quarantine (:qu), preiso (:pi), intervention measure (:im), or contact tracing (:ct)    
-<<<<<<< HEAD
-    
-=======
-        
->>>>>>> 4b224fc726a13cfe24697ce0ace0535cc638f2bf
+
     #comorbidity::Int8 = 0 ##does the individual has any comorbidity?
     # Taiye: We are not considering comorbidities at this stage.
 
