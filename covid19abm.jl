@@ -5,7 +5,7 @@ module covid19abm
 # - if someone tested negative, they will test again and again until the number is reached or is positive
 # - be careful: new notification cannot set the times to zero if someone is in a series of testing
 
-# Edit: 2025.05.16
+# Edit: 2025.05.22
 # Any edits that I make will include "#Taiye:".
 using Base
 using Parameters, Distributions, StatsBase, StaticArrays, Random, Match, DataFrames
@@ -817,13 +817,14 @@ end
 export move_to_asymp
 
 function move_to_pre(x::Human)
-    if x.strain == 1 
-        θ = (0.95, 0.9, 0.85, 0.6, 0.2)  # percentage of sick individuals going to mild infection stage
-    elseif x.strain == 2 || x.strain == 3
-        θ = (0.89, 0.78, 0.67, 0.48, 0.04)
-    else
-        error("no strain in move to pre")
-    end  # percentage of sick individuals going to mild infection stage
+    # Taiye: Removing if-statement
+    #if x.strain == 1 
+     #   θ = (0.95, 0.9, 0.85, 0.6, 0.2)  # percentage of sick individuals going to mild infection stage
+    #elseif x.strain == 2 || x.strain == 3
+     #   θ = (0.89, 0.78, 0.67, 0.48, 0.04)
+    #else
+     #   error("no strain in move to pre")
+    #end  # percentage of sick individuals going to mild infection stage
     x.health = x.swap
     x.health_status = x.swap_status
     x.tis = 0   # reset time in state 
