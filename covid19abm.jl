@@ -226,10 +226,10 @@ function runsim(simnum, ip::ModelParameters)
 
     ### total days of isolation per age group, both working and general
     geniso_gr = map(y->findall(x-> x.age in y,humans),age_groups)
-    workiso_gr = map(y->findall(x-> x.age in y && x.workplace_idx > 0,humans),age_groups)
+    #workiso_gr = map(y->findall(x-> x.age in y && x.workplace_idx > 0,humans),age_groups)
 
     giso = map(y-> sum([ii.totaldaysiso for ii in humans[y]]),geniso_gr)
-    wiso = map(y-> sum([ii.totaldaysiso for ii in humans[y]]),workiso_gr)
+    #wiso = map(y-> sum([ii.totaldaysiso for ii in humans[y]]),workiso_gr)
 
     return (a=all1, g1=ag1, g2=ag2, g3=ag3, g4=ag4, g5=ag5,g6=ag6,g7=ag7, work = work,
     vector_dead=vector_ded,nra=nra,npcr=npcr, R0 = R01, niso_t_p=niso_t_p, nleft=nleft,giso = giso, wiso = wiso)
@@ -875,9 +875,9 @@ function send_notification(x::Human) # Taiye (2025.05.22): added an 's' to 'huma
     
     for i in v
         # Taiye (2025.05.23): Changed humans[i] to v[i] in each case.
-        if v[i].notified == false # Taiye: To avoid new notifications resetting times.
-            v[i].notified = true
-            v[i].timetotest = p.time_until_testing
+        if humans[i].notified == false # Taiye: To avoid new notifications resetting times.
+            humans[i].notified = true
+            humans[i].timetotest = p.time_until_testing
         end
         #humans[i].time_since_testing = 0#p.time_between_tests # Taiye
     end
