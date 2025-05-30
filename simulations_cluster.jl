@@ -1,9 +1,23 @@
+# 2025.05.30
+
+# Taiye (2025.05.23):
+import Pkg
+Pkg.add("CSV")
+Pkg.add("Distributed")
+Pkg.add("Query")
+Pkg.add("ClusterManagers")
+Pkg.add("Dates")
+Pkg.add("DelimitedFiles")
+Pkg.add("SlurmClusterManager")
+
+
 using Distributed
 using Base.Filesystem
 using DataFrames
 using CSV,Statistics,Query,ClusterManagers
 using Dates
 using DelimitedFiles
+using SlurmClusterManager # Taiye (2025.05.23)
 
 ## load the packages by covid19abm
 
@@ -53,7 +67,10 @@ function run(myp::cv.ModelParameters, nsims=1000, folderprefix="./")
     
     #c1 = Symbol.((:LAT, :PRE, :MILD, :INF, :HOS, :ICU, :DED,:LAT2, :PRE2, :MILD2, :INF2, :HOS2, :ICU2, :DED2,:LAT3, :PRE3, :MILD3, :INF3, :HOS3, :ICU3, :DED3), :_INC)
     
-    c1 = Symbol.((:LAT, :MILD, :INF, :HOS, :ICU, :DED), :_INC)
+    # Taiye:
+    # c1 = Symbol.((:LAT, :MILD, :INF, :HOS, :ICU, :DED), :_INC)
+    c1 = Symbol.((:LAT, :INF, :DED), :_INC)
+
     #c2 = Symbol.((:LAT, :HOS, :ICU, :DED,:LAT2, :HOS2, :ICU2, :DED2,:LAT3, :HOS3, :ICU3, :DED3), :_PREV)
     
     #c2 = Symbol.((:LAT, :HOS, :ICU, :DED,:LAT2, :HOS2, :ICU2, :DED2), :_PREV)
@@ -81,7 +98,7 @@ function run(myp::cv.ModelParameters, nsims=1000, folderprefix="./")
     writedlm(string(folderprefix,"/nra.dat"),hcat([cdr[i].nra for i=1:nsims]...))
     writedlm(string(folderprefix,"/nleft.dat"),hcat([cdr[i].nleft for i=1:nsims]...))
     writedlm(string(folderprefix,"/totalisog.dat"),vcat([cdr[i].giso for i=1:nsims]))
-    writedlm(string(folderprefix,"/totalisow.dat"),vcat([cdr[i].wiso for i=1:nsims]))
+    #writedlm(string(folderprefix,"/totalisow.dat"),vcat([cdr[i].wiso for i=1:nsims]))
 
     return mydfs
 end
@@ -90,12 +107,15 @@ end
 function create_folder(ip::cv.ModelParameters,province="ontario")
     
     #RF = string("heatmap/results_prob_","$(replace(string(ip.β), "." => "_"))","_vac_","$(replace(string(ip.vaccine_ef), "." => "_"))","_herd_immu_","$(ip.herd)","_$strategy","cov_$(replace(string(ip.cov_val)))") ## 
-    main_folder = "/data/thomas-covid/testing_canada"
+    #Taiye (2025.05.30): main_folder = "/data/thomas-covid/testing_canada"
+    main_folder = "/data/Taiye"
     #main_folder = "."
     
-    secondaryfolder = string(main_folder,"/fmild_$(ip.fmild)_fwork_$(ip.fwork)") ##  
+    # Taiye (2025.05.27): secondaryfolder = string(main_folder,"/fmild_$(ip.fmild)_fwork_$(ip.fwork)") ##  
+    secondaryfolder = string(main_folder,"/fmild_$(ip.fmild)") # fwork is not found in covid19abm.jl
     
-    RF = string(secondaryfolder,"/results_prob_","$(replace(string(ip.β), "." => "_"))","_herd_immu_","$(ip.herd)","_idx_$(ip.file_index)_$(province)_strain_$(ip.strain)_scen_$(ip.scenariotest)_test_$(ip.test_ra)_eb_$(ip.extra_booster)_size_$(ip.size_threshold)") ##  
+    # Taiye (2025.05.27): RF = string(secondaryfolder,"/results_prob_","$(replace(string(ip.β), "." => "_"))","_herd_immu_","$(ip.herd)","_idx_$(ip.file_index)_$(province)_strain_$(ip.strain)_scen_$(ip.scenariotest)_test_$(ip.test_ra)_eb_$(ip.extra_booster)_size_$(ip.size_threshold)") ## 
+    RF = string(secondaryfolder,"/results_prob_","$(replace(string(ip.β), "." => "_"))","_idx_$(ip.file_index)_$(province)_strain_$(ip.strain)_scen_$(ip.scenariotest)_test_$(ip.test_ra)_size_$(ip.size_threshold)") 
     
     if !Base.Filesystem.isdir(secondaryfolder)
         Base.Filesystem.mkpath(secondaryfolder)
@@ -110,15 +130,19 @@ end
 
 # change coverage of app_coverage
 # time testing
-function run_param_scen_cal(b::Float64,province::String="ontario",h_i::Int64 = 0,ic1::Int64=1,strains::Int64 = 1,index::Int64 = 0,scen::Int64 = 0,tra::Int64 = 0,eb::Int64 = 0,wpt::Int64 = 100,mt::Int64=300,test_time::Int64 = 1,test_dur::Int64=112,mildcomp::Float64 = 1.0,workcomp::Float64 = 1.0,dayst::Vector{Int64} = [1;4],trans_omicron::Float64 = 1.0,immu_omicron::Float64 = 0.0,rc=[1.0],dc=[1],nsims::Int64=500)
-    
+# Taiye (2025.05.27):
+# function run_param_scen_cal(b::Float64,province::String="ontario",h_i::Int64 = 0,ic1::Int64=1,strains::Int64 = 1,index::Int64 = 0,scen::Int64 = 0,tra::Int64 = 0,eb::Int64 = 0,wpt::Int64 = 100,mt::Int64=300,test_time::Int64 = 1,test_dur::Int64=112,mildcomp::Float64 = 1.0,workcomp::Float64 = 1.0,dayst::Vector{Int64} = [1;4],trans_omicron::Float64 = 1.0,immu_omicron::Float64 = 0.0,rc=[1.0],dc=[1],nsims::Int64=500)
+function run_param_scen_cal(b::Float64,province::String="ontario",ic1::Int64=1,strains::Int64 = 1,index::Int64 = 0,scen::Int64 = 0,tra::Int64 = 0,wpt::Int64 = 100,mt::Int64=300,test_time::Int64 = 1,test_dur::Int64=112,mildcomp::Float64 = 1.0,workcomp::Float64 = 1.0,dayst::Vector{Int64} = [1;4],trans_omicron::Float64 = 1.0,immu_omicron::Float64 = 0.0,rc=[1.0],dc=[1],nsims::Int64=500)
+  
     
     @everywhere ip = cv.ModelParameters(β=$b,
-    herd = $(h_i),start_several_inf=true,
+    # Taiye (2025.05.27):
+    #herd = $(h_i),
+    start_several_inf=true,
     initialinf = $ic1,
     file_index = $index,
     modeltime=$mt, prov = Symbol($province),
-    n_boosts = 1,
+    # n_boosts = 1, # Taiye (2025.05.27): verify definition (assumed number of boosters)
     scenariotest = $scen,
     start_testing = $test_time,
     test_for = $test_dur,
