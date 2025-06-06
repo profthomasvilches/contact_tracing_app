@@ -1,4 +1,4 @@
-# 2025.06.01
+# 2025.06.06
 
 # Taiye (2025.05.23):
 import Pkg
@@ -96,9 +96,9 @@ function run(myp::cv.ModelParameters, nsims=1000, folderprefix="./")
     
     writedlm(string(folderprefix,"/R01.dat"),[cdr[i].R0 for i=1:nsims])
     writedlm(string(folderprefix,"/year_of_death.dat"),hcat([cdr[i].vector_dead for i=1:nsims]...))
-    writedlm(string(folderprefix,"/npcr.dat"),hcat([cdr[i].npcr for i=1:nsims]...))
+    # Taiye (2025.06.06): writedlm(string(folderprefix,"/npcr.dat"),hcat([cdr[i].npcr for i=1:nsims]...))
     writedlm(string(folderprefix,"/nra.dat"),hcat([cdr[i].nra for i=1:nsims]...))
-    writedlm(string(folderprefix,"/nleft.dat"),hcat([cdr[i].nleft for i=1:nsims]...))
+    # Taiye (2025.06.06): writedlm(string(folderprefix,"/nleft.dat"),hcat([cdr[i].nleft for i=1:nsims]...))
     writedlm(string(folderprefix,"/totalisog.dat"),vcat([cdr[i].giso for i=1:nsims]))
     #writedlm(string(folderprefix,"/totalisow.dat"),vcat([cdr[i].wiso for i=1:nsims]))
 
@@ -134,7 +134,7 @@ end
 # time testing
 # Taiye (2025.05.27):
 # function run_param_scen_cal(b::Float64,province::String="ontario",h_i::Int64 = 0,ic1::Int64=1,strains::Int64 = 1,index::Int64 = 0,scen::Int64 = 0,tra::Int64 = 0,eb::Int64 = 0,wpt::Int64 = 100,mt::Int64=300,test_time::Int64 = 1,test_dur::Int64=112,mildcomp::Float64 = 1.0,workcomp::Float64 = 1.0,dayst::Vector{Int64} = [1;4],trans_omicron::Float64 = 1.0,immu_omicron::Float64 = 0.0,rc=[1.0],dc=[1],nsims::Int64=500)
-function run_param_scen_cal(b::Float64,province::String="ontario",ic1::Int64=1,strains::Int64 = 1,index::Int64 = 0,scen::Int64 = 0,tra::Int64 = 0,wpt::Int64 = 100,mt::Int64=300,dayst::Vector{Int64} = [1;4],rc=[1.0],dc=[1],nsims::Int64=500)
+function run_param_scen_cal(b::Float64,province::String="ontario",ic1::Int64=1,index::Int64 = 0,scen::Int64 = 0,mt::Int64=300,nsims::Int64=500)
   
     
     @everywhere ip = cv.ModelParameters(β=$b,
