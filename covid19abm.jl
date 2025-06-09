@@ -129,6 +129,8 @@ end
     fmild::Float64 = 0.5  ## percent of people practice self-isolation
     # Taiye: Could be useful later for keeping track of the population in isolation.
 
+    start_testing::Int64 = 0
+    test_for::Int64 = 0
     fsevere::Float64 = 1.0 #
     frelasymp::Float64 = 0.26 ## relative transmission of asymptomatic
     fctcapture::Float16 = 0.0 ## how many symptomatic people identified
@@ -609,16 +611,18 @@ function insert_infected(health, num, ag)
         h = sample(l, num; replace = false)
         @inbounds for i in h 
             x = humans[i]
-            x.strain = strain
+            # Taiye (2025.06.08): x.strain = strain
             x.dur = sample_epi_durations(x)
-            if x.strain > 0
-                if health == PRE
+
+            # Taiye (2025.06.08): Removed if x.strain > 0
+            #if x.strain > 0
+            if health == PRE
                     x.swap = health
                     x.swap_status = PRE
                     x.daysinf = x.dur[1]+1
                     x.wentto = 1
                     move_to_pre(x) ## the swap may be asymp, mild, or severe, but we can force severe in the time_update function
-                elseif health == LAT
+            elseif health == LAT
                     x.swap = health
                     x.swap_status = LAT
                     x.daysinf = rand(1:x.dur[1])
@@ -631,30 +635,30 @@ function insert_infected(health, num, ag)
                    # x.wentto = 1
                     #x.daysinf = x.dur[2]+1
                     #move_to_mild(x)
-                elseif health == INF
+            elseif health == INF
                     x.swap = health
                     x.swap_status = INF
                     x.wentto = 1
                     move_to_inf(x)
-                elseif health == ASYMP
+            elseif health == ASYMP
                     x.swap = health
                     x.swap_status = ASYMP
                     x.wentto = 2
                     move_to_asymp(x)
                 
                 
-                elseif health == REC 
+            elseif health == REC 
                     x.swap = health
                     x.swap_status = REC
                     x.wentto = rand(1:2)
                     move_to_recovered(x)
 
-                else 
+            else 
                     error("can not insert human of health $(health)")
-                end
-            else
-                error("no strain insert inf")
             end
+            #else
+             #   error("no strain insert inf")
+            #end
             
             x.sickfrom = INF # this will add +1 to the INF count in _count_infectors()... keeps the logic simple in that function.    
             
@@ -1197,7 +1201,7 @@ function perform_contacts(x,gpw,grp_sample,xhealth)
                 y.exp = y.tis   ## force the move to latent in the next time step.
                 y.sickfrom = xhealth ## stores the infector's status to the infectee's sickfrom
                 y.sickby = y.sickby < 0 ? x.idx : y.sickby
-                y.strain = x.strain       
+               # Taiye (2025.06.08): y.strain = x.strain       
                 y.swap = LAT
                 y.swap_status = LAT
                 y.daysinf = 0
