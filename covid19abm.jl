@@ -447,7 +447,9 @@ end
 export _splitstate
 
 function _get_incidence_and_prev(hmatrix)
-    cols = instances(HEALTH)[1:end - 1] ## don't care about the UNDEF health status
+    # Taiye (2025.06.09): Replacing instances with iterate.
+    cols = iterate(HEALTH)[1:end - 1]
+    #cols = instances(HEALTH)[1:end - 1] ## don't care about the UNDEF health status
     inc = zeros(Int64, p.modeltime, length(cols))
     pre = zeros(Int64, p.modeltime, length(cols))
     for i = 1:length(cols)
