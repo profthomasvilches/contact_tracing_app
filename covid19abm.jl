@@ -167,6 +167,9 @@ end
     time_between_tests::Int64 = 0
 
     #n_neg_tests::Int64 = 0 # Taiye
+
+    # Taiye (2025.06.09): Tentative contact change rates
+    contact_change_rate::Float64 = 0.50
 end
 
 
