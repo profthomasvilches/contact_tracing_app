@@ -1136,7 +1136,7 @@ export _get_betavalue
       #  x.nextday_meetcnt_w = 0
       
         x.nextday_meetcnt = cnt
-    else
+    #else
 
     end
     
@@ -1145,9 +1145,9 @@ export _get_betavalue
     end
 
     # if x.health_status in (HOS,ICU,DED) # Taiye
-    if x.health_status in (DED)
-        x.nextday_meetcnt = 0
-    end
+    #if x.health_status in (DED)
+     #   x.nextday_meetcnt = 0
+    #end
    
     for i in 2:p.track_days
         x.contacts[i] = deepcopy(x.contacts[i-1])
