@@ -1,4 +1,4 @@
-# 2025.06.06
+# 2025.06.21
 
 # Taiye (2025.05.23):
 #import Pkg
@@ -10,14 +10,26 @@
 #Pkg.add("DelimitedFiles")
 #Pkg.add("SlurmClusterManager")
 
+# Taiye (2025.06.21)
+#using Distributed
+#using Base.Filesystem
+#using DataFrames
+#using CSV,Statistics,Query,ClusterManagers
+#using Dates
+#using DelimitedFiles
+#using SlurmClusterManager # Taiye (2025.05.23)
 
 using Distributed
 using Base.Filesystem
 using DataFrames
-using CSV,Statistics,Query,ClusterManagers
+using CSV
+using Query
+using Statistics
+using ClusterManagers
 using Dates
 using DelimitedFiles
-#using SlurmClusterManager # Taiye (2025.05.23)
+ENV["JULIA_WORKER_TIMEOUT"] = "180"
+addprocs(ClusterManagers.SlurmManager(250), N=8, topology=:master_worker, exeflags="--project=Project.toml"; W="300")
 
 ## load the packages by covid19abm
 
@@ -30,7 +42,8 @@ using DelimitedFiles
 
 # Taiye (2025.06.01): Return addprocs when connecting to the cluster
 # Taiye (Use half cluster for testing): addprocs(ClusterManagers.SlurmManager(500), N=16, topology=:master_worker, exeflags = "--project=.")
-addprocs(ClusterManagers.SlurmManager(250), N=8, topology=:master_worker, exeflags = "--project=.")
+# Taiye (2025.06.21): addprocs(ClusterManagers.SlurmManager(250), N=8, topology=:master_worker, exeflags = "--project=.")
+
 @everywhere using Parameters, Distributions, StatsBase, StaticArrays, Random, Match, DataFrames
 @everywhere include("covid19abm.jl")
 @everywhere const cv=covid19abm
