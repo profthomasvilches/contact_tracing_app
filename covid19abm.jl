@@ -1236,7 +1236,7 @@ function perform_contacts(x,gpw,grp_sample,xhealth)
                 
             elseif y.health_status == REC && y.swap == UNDEF
 
-            elseif y.swap == UNDEF
+           # Taiye (2025.06.21): elseif y.swap == UNDEF
                             
                 beta = _get_betavalue(xhealth)
             else
