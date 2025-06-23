@@ -992,7 +992,9 @@ function move_to_inf(x::Human)
     if p.testing && !x.testedpos && x.has_app
         #testing_infection(x, p.test_ra)
         x.notified = true
-        humans[i].timetotest = 1
+
+       # Taiye (2025.06.23): humans[i].timetotest = 1
+        x.timetotest = 1
     end
 
     # This if-statement might be unnecessary.
