@@ -1198,7 +1198,7 @@ function dyntrans(sys_time, grps,sim)
     # go through every infectious person
     for x in humans[pos]        
     # Taiye:     if x.health_status in (PRE, ASYMP, MILD, MISO, INF, IISO)
-        if x.health_status in (PRE, ASYMP, INF)
+       # if x.health_status in (PRE, ASYMP, INF)
             
             xhealth = x.health
             cnts = x.nextday_meetcnt
@@ -1211,7 +1211,7 @@ function dyntrans(sys_time, grps,sim)
             
             perform_contacts(x,gpw,grps,xhealth)
                       
-        end
+        
     end
     #return totalmet, totalinf
 end
@@ -1235,34 +1235,43 @@ function perform_contacts(x,gpw,grp_sample,xhealth)
             if y.has_app && x.has_app
                 x.ncontacts_day = x.ncontacts_day+1
                 x.contacts[1][x.ncontacts_day] = y.idx
+                y.ncontacts_day = y.ncontacts_day+1
+                y.contacts[1][y.ncontacts_day] = x.idx
             end
             #adj_beta = 0 # adjusted beta value by strain and vaccine efficacy
-            if y.health == SUS && y.swap == UNDEF
+            if x.health_status in (PRE, ASYMP, INF) && y.health == SUS && y.swap == UNDEF 
                 
-                beta = _get_betavalue(xhealth)
+                beta = _get_betavalue(x.health)
                 
-            elseif y.health_status == REC && y.swap == UNDEF
-
-           # Taiye (2025.06.21): elseif y.swap == UNDEF
-                            
-                beta = _get_betavalue(xhealth)
-            else
-                beta = 0.0
+                if rand() < beta
+                
+                    y.exp = y.tis   ## force the move to latent in the next time step.
+                    y.sickfrom = x.health ## stores the infector's status to the infectee's sickfrom
+                    y.sickby = y.sickby < 0 ? x.idx : y.sickby
+                # Taiye (2025.06.08): y.strain = x.strain       
+                    y.swap = LAT
+                    y.swap_status = LAT
+                    y.daysinf = 0
+                    y.dur = sample_epi_durations(y)
+                    #y.swap = y.strain == 1 ? LAT : LAT2
+                end  
+            elseif y.health_status in (PRE, ASYMP, INF) && x.health == SUS && x.swap == UNDEF
+                beta = _get_betavalue(y.health)
+                if rand() < beta
+                
+                    x.exp = x.tis   ## force the move to latent in the next time step.
+                    x.sickfrom = y.health ## stores the infector's status to the infectee's sickfrom
+                    x.sickby = x.sickby < 0 ? y.idx : x.sickby
+                # Taiye (2025.06.08): y.strain = x.strain       
+                    x.swap = LAT
+                    x.swap_status = LAT
+                    x.daysinf = 0
+                    x.dur = sample_epi_durations(x)
+                    #y.swap = y.strain == 1 ? LAT : LAT2
+                end  
+            
             end
-            adj_beta = beta#*(1-aux*(1-p.immunity_omicron))
-
-            if rand() < adj_beta
-                
-                y.exp = y.tis   ## force the move to latent in the next time step.
-                y.sickfrom = xhealth ## stores the infector's status to the infectee's sickfrom
-                y.sickby = y.sickby < 0 ? x.idx : y.sickby
-               # Taiye (2025.06.08): y.strain = x.strain       
-                y.swap = LAT
-                y.swap_status = LAT
-                y.daysinf = 0
-                y.dur = sample_epi_durations(y)
-                #y.swap = y.strain == 1 ? LAT : LAT2
-            end  
+        
         end
     end  
 
