@@ -1234,9 +1234,20 @@ function perform_contacts(x,gpw,grp_sample,xhealth)
             
             if y.has_app && x.has_app
                 x.ncontacts_day = x.ncontacts_day+1
-                x.contacts[1][x.ncontacts_day] = y.idx
+                # Taiye (2025.06.27): Attempting to correct BoundsError: attempt to access 1-element Vector{Int16} at index [2]
+                if length(x.contacts[1]) >= x.ncontacts_day
+                    #x.contacts[1] = y.idx
+                #else
+                    x.contacts[1][x.ncontacts_day] = y.idx
+                end
+
+             # Taiye (2025.06.27): Attempting to correct BoundsError: attempt to access 1-element Vector{Int16} at index [2]
                 y.ncontacts_day = y.ncontacts_day+1
-                y.contacts[1][y.ncontacts_day] = x.idx
+                if length(y.contacts[1]) >= y.ncontacts_day
+                    #y.contacts[1] = x.idx
+                #else    
+                    y.contacts[1][y.ncontacts_day] = x.idx
+                end
             end
             #adj_beta = 0 # adjusted beta value by strain and vaccine efficacy
             if x.health_status in (PRE, ASYMP, INF) && y.health == SUS && y.swap == UNDEF 
