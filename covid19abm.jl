@@ -929,11 +929,9 @@ end
 function send_notification(x::Human) # Taiye (2025.05.22): added an 's' to 'human'; Update: 'humans' -> 'Human'
     v = vcat(x.contacts...)
     for i in v
-        # Taiye (2025.05.23): Changed humans[i] to v[i] in each case.
-        # Taiye (2025.06.24): changed i indexes to i+1 to eliminate 0 error
-        if humans[i+1].notified == false # Taiye: To avoid new notifications resetting times.
-            humans[i+1].notified = true
-            humans[i+1].timetotest = p.time_until_testing
+        if 1 <= i <= length(humans) && !humans[i].notified # Taiye: To avoid new notifications resetting times.
+            humans[i].notified = true
+            humans[i].timetotest = p.time_until_testing
         end
         #humans[i].time_since_testing = 0#p.time_between_tests # Taiye
     end
