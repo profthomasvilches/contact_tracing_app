@@ -5,7 +5,7 @@ module covid19abm
 # - if someone tested negative, they will test again and again until the number is reached or is positive
 # - be careful: new notification cannot set the times to zero if someone is in a series of testing
 
-# Edit: 2025.06.24
+# Edit: 2025.07.01
 # Any edits that I make will include "#Taiye:".
 
 # Taiye (2025.05.27):
@@ -107,7 +107,11 @@ Base.@kwdef mutable struct Human
 
     totaldaysiso::Int32 = 0  
     has_app::Bool = false
-    contacts::Vector{Vector{Int16}} = [[0; 0]]
+
+    # Taiye (2025.07.01): Attempting to rectify ERROR: InexactError: trunc(Int16, 83320)
+    # contacts::Vector{Vector{Int16}} = [[0; 0]]
+    contacts::Vector{Vector{Int64}} = [[0; 0]]
+
     ncontacts_day::Int8 = 0
     testedpos::Bool = false
     notified::Bool = false
@@ -134,7 +138,7 @@ end
     # Taiye: Could be useful later for keeping track of the population in isolation.
 
     start_testing::Int64 = 2 # Taiye (2025.06.30): 0 -> 2
-    test_for::Int64 = 2 # Taiye (2025.06.30): 0 -> 2
+    test_for::Int64 = 200 # Taiye (2025.07.01): 0 -> 2 -> 200
     fsevere::Float64 = 1.0 #
     frelasymp::Float64 = 0.26 ## relative transmission of asymptomatic
     fctcapture::Float16 = 0.0 ## how many symptomatic people identified
@@ -179,9 +183,6 @@ end
     # Taiye (2025.06.12): Attempting to correct 'ERROR: type ModelParameters has no field testing'
     testing::Bool = false
 
-    # Taiye (2025.06.12): Defining initial_day_week.
-    initial_day_week::Int64 = 1
-
     # Taiye (2025.06.24): asymp_red was not defined in matrices_code.jl.
     asymp_red::Float64 = 2 # Taiye (2025.06.24): tentative value
 end
@@ -211,7 +212,6 @@ function runsim(simnum, ip::ModelParameters)
     #Get the R0
     
     R01 = length(findall(k -> k.sickby in hh1,humans))/length(hh1)
-    
     ###use here to create the vector of comorbidity
     # get simulation age groups
     #ags = [x.ag for x in humans] # store a vector of the age group distribution 
@@ -286,8 +286,6 @@ function main(ip::ModelParameters,sim::Int64)
 
     # split population in agegroups 
     grps = get_ag_dist()
-    
-    initial_dw::Int64 = 0
 
     nra::Vector{Int64} = zeros(Int64,p.modeltime)
     # (Taiye 2025.06.06): npcr::Vector{Int64} = zeros(Int64,p.modeltime)
@@ -361,7 +359,6 @@ function main(ip::ModelParameters,sim::Int64)
     setfield!(p,:testing,false)
 
     for st = (p.start_testing+p.test_for):p.modeltime
-        initial_dw = st+(p.initial_day_week-1)-7*Int(floor((st-1+(p.initial_day_week-1))/7))
         for x in humans
             # if x.iso && !(x.health_status in (HOS,ICU,DED)) # Taiye: Depends on whether we are considering HOS, ICU and DED.
             if x.iso && !(x.health_status == DED) #&& !(x.health_status in (HOS,ICU,DED))
@@ -1154,7 +1151,8 @@ export _get_betavalue
         cnt = rand(negative_binomials(ag,aux)) ##using the contact average for shelter-in
         
         x.nextday_meetcnt = cnt
-    # elseif !(x.health_status  in (HOS,ICU,DED)) # Taiye
+    
+    elseif !(x.health_status == (DED)) # Taiye
         cnt = rand(negative_binomials_shelter(ag,p.contact_change_2))  # expensive operation, try to optimize
       
     # Taiye (2025.06.09): nextday_meetcnt_w is only used here and could refer to workplaces, which would make it unnecessary.
