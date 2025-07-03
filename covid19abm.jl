@@ -166,7 +166,7 @@ end
     ageintapp::Vector{Int64} = [10; 60]
     ##for testing
 
-    test_ra::Int64 = 1 # Taiye (2025.06.24): 1 - PCR, 2 - Abbott_PanBio 3 - 	BD VERITO	4 - SOFIA
+    test_ra::Int64 = 2 # Taiye (2025.06.24): 1 - PCR, 2 - Abbott_PanBio 3 - 	BD VERITO	4 - SOFIA
     # Taiye: I believe that PCR tests are the only ones being considered.
 
     time_until_testing::Int64 = 1
@@ -184,7 +184,7 @@ end
     testing::Bool = false
 
     # Taiye (2025.06.24): asymp_red was not defined in matrices_code.jl.
-    asymp_red::Float64 = 2 # Taiye (2025.06.24): tentative value
+    asymp_red::Float64 = 0.5 # Taiye (2025.06.24): tentative value
 end
 
 
