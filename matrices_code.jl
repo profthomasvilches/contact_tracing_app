@@ -820,7 +820,7 @@ function _get_prob_test(x::Human,test::Int64)
 
         prob = x.wentto > 0 ? prob*(p.asymp_red^(x.wentto-1)) : prob
 
-        prob = max(prob,pp[1,test])
+        #prob = max(prob,pp[1,test]) comented because there is no false positive prob
 
     end
 
