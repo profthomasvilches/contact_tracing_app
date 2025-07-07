@@ -25,9 +25,11 @@ using DataFrames
 using CSV
 using Query
 using Statistics
-using ClusterManagers
 using Dates
 using DelimitedFiles
+
+#? cluster parameters and packages
+using ClusterManagers
 ENV["JULIA_WORKER_TIMEOUT"] = "180"
 addprocs(ClusterManagers.SlurmManager(250), N=8, topology=:master_worker, exeflags="--project=Project.toml"; W="300")
 
@@ -35,7 +37,7 @@ addprocs(ClusterManagers.SlurmManager(250), N=8, topology=:master_worker, exefla
 
 #using covid19abm
 
-#addprocs(4, exeflags="--project=.")
+#addprocs(10, exeflags="--project=.")
 
 
 #@everywhere using covid19abm
