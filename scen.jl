@@ -18,8 +18,8 @@ cv.ModelParameters(popsize=10)
  #   run_param_scen_cal(1.0,"ontario",1,0,1,200,200,500,1000,a_c*i)
 #end
 
-run_param_scen_cal(0.03,"ontario",1,0,1,200,200,500,1000,0.0)
-run_param_scen_cal(0.03,"ontario",1,0,1,200,200,500,1000,0.5)
-run_param_scen_cal(0.03,"ontario",1,0,1,200,200,500,1000,0.8)
+run_param_scen_cal(0.5,"ontario",1,0,1,200,200,500,1000,0.0)
+run_param_scen_cal(0.5,"ontario",1,0,1,200,200,500,1000,0.5)
+run_param_scen_cal(0.5,"ontario",1,0,1,200,200,500,1000,0.8)
 
 # run_param_scen_cal(0.1,"ontario",1,0,10,50,200,2,1000)
