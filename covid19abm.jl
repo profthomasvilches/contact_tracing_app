@@ -8,15 +8,6 @@ module covid19abm
 # Edit: 2025.07.01
 # Any edits that I make will include "#Taiye:".
 
-# Taiye (2025.05.27):
-import Pkg
-Pkg.add("Parameters")
-Pkg.add("DataFrames")
-Pkg.add("Distributions")
-Pkg.add("StatsBase")
-Pkg.add("StaticArrays")
-Pkg.add("Match")
-Pkg.add("Random")
 
 using Base
 using Parameters, Distributions, StatsBase, StaticArrays, Random, Match, DataFrames
@@ -144,24 +135,12 @@ end
     fctcapture::Float16 = 0.0 ## how many symptomatic people identified
     #vaccine_ef::Float16 = 0.0   ## change this to Float32 typemax(Float32) typemax(Float64)
     
-    # herd::Int8 = 0 #typemax(Int32) ~ millions
-    # Taiye: We are not considering herd immunity at this stage.
 
     file_index::Int16 = 0
     
     app_coverage = 0.8
     track_days::Int8 = 3
-    #the cap for coverage should be 90% for 65+; 95% for HCW; 80% for 50-64; 60% for 16-49; and then 50% for 12-15 (starting from June 1).
-    #comor_comp::Float64 = 0.7 #prop comorbidade tomam
     
-    #one waning rate for each efficacy? For each strain? I can change this structure based on that
-    # reduce_days::Int64 = 0 # Taiye: We are not considering waning.
-    # waning::Int64 = 1 # Taiye: We are not considering waning.
-
-    ### after calibration, how much do we want to increase the contact rate... in this case, to reach 70%
-    ### 0.5*0.95 = 0.475, so we want to multiply this by 1.473684211
-
-    # hosp_red::Float64 = 3.1 # Taiye: We can add this if we decide to include hospitalizations.
     isolation_days::Int64 = 5
     ageintapp::Vector{Int64} = [10; 60]
     ##for testing
@@ -170,7 +149,6 @@ end
     # Taiye: I believe that PCR tests are the only ones being considered.
 
     time_until_testing::Int64 = 1
-    #prop_working::Float64 = 0.65 #https://www.ontario.ca/document/ontario-employment-reports/april-june-2021#:~:text=Ontario's%20overall%20labour%20force%20participation,years%20and%20over%20at%2038.8%25.
     n_tests::Int64 = 2
     time_between_tests::Int64 = 0
 
@@ -324,16 +302,7 @@ function main(ip::ModelParameters,sim::Int64)
     
     setfield!(p,:testing,true) 
 
-    # Taiye: Attempt at implementation.
-    #? Thomas: we cannot use this
-    # for x in humans
-    #     if x.time_since_testing < p.time_between_tests
-    #         setfield!(p,:testing,false)
-    #     else
-            #setfield!(p,:testing,true)
-    #     end
-    # end
-
+    
 
     # start the time loop
     for st = p.start_testing:min((p.start_testing+p.test_for-1),p.modeltime)
@@ -351,7 +320,7 @@ function main(ip::ModelParameters,sim::Int64)
 
         # Taiye (2025.06.12): sw might be a scalar
         # nra[st]+= sw[6]
-        nra[st] += sw[length(sw)]
+        nra[st] += sw
 
         # end of day
     end
@@ -922,6 +891,7 @@ function testing_infection(x::Human, teste)
 
     else # Taiye: counting the number of negative tests performed.
           x.n_neg_tests += 1
+          x.timetotest = p.time_until_testing
     end
 
 end
@@ -1000,18 +970,6 @@ function move_to_inf(x::Human)
         x.timetotest = 1
     end
 
-    # This if-statement might be unnecessary.
-   # if rand() < h     # going to hospital or ICU but will spend delta time transmissing the disease with full contacts 
-    #    x.exp = time_to_hospital
-     #   if rand() < c
-      #      x.swap = ICU
-       #     x.swap_status = ICU
-            
-       # else
-        #    x.swap = HOS
-         #   x.swap_status = HOS
-            
-      #  end
        
    # else ## no hospital for this lucky (but severe) individual 
     if rand() < mh[gg]
@@ -1030,66 +988,6 @@ function move_to_inf(x::Human)
 
 end
 
-# Taiye: This function might be unnecessary.
-#function move_to_hospicu(x::Human)   
-    #death prob taken from https://www.cdc.gov/nchs/nvss/vsrr/covid_weekly/index.htm#Comorbidities
-    # on May 31th, 2020
-    #= age_thres = [24;34;44;54;64;74;84;999]
-    g = findfirst(y-> y >= x.age,age_thres) =#
-    #https://www.medrxiv.org/content/10.1101/2021.08.24.21262415v1
- #   aux = [0:4, 5:19, 20:44, 45:54, 55:64, 65:74, 75:84, 85:99]
-   
-
-  #      mh = [0.001, 0.001, 0.0015, 0.0065, 0.01, 0.02, 0.0735, 0.38]
-   #     mc = [0.002,0.002,0.0022, 0.008, 0.022, 0.04, 0.08, 0.4]
-
-    #gg = findfirst(y-> x.age in y,aux)
-
- #   psiH = Int(round(rand(Distributions.truncated(Gamma(4.5, 2.75), 8, 17))))
-  #  psiC = Int(round(rand(Distributions.truncated(Gamma(4.5, 2.75), 8, 17)))) + 2
-   # muH = Int(round(rand(Distributions.truncated(Gamma(5.3, 2.1), 9, 15))))
-    #muC = Int(round(rand(Distributions.truncated(Gamma(5.3, 2.1), 9, 15)))) + 2
-
- #   swaphealth = x.swap_status 
-  #  x.health = x.swap ## swap either to HOS or ICU
-   # x.health_status = x.swap_status
-    #x.swap = UNDEF
-  #  x.tis = 0
-   # _set_isolation(x, true, :hosp) # do not set the isovia property here.  
-
-    #if swaphealth == HOS
-         
-     #   if rand() < mh[gg] ## person will die in the hospital 
-      #      x.exp = muH 
-       #     x.swap = DED
-        #    x.swap_status = DED
-           
-      #  else 
-       #     x.exp = psiH 
-        #    x.swap = REC
-         #   x.swap_status = REC
-            
-      #  end    
-   # elseif swaphealth == ICU
-              
-    #    if rand() < mc[gg] ## person will die in the ICU 
-     #       x.exp = muC
-      #      x.swap = DED
-       #     x.swap_status = DED
-           
-#        else 
- #           x.exp = psiC
-  #          x.swap = REC
-   #         x.swap_status = REC
-            
-    #    end
-   # else
-    #    error("error in hosp")
-   # end
-    
-    ## before returning, check if swap is set 
- #   x.swap == UNDEF && error("agent H -> ?")    
-#end
 
 function move_to_dead(h::Human)
     # no level of alchemy will bring someone back to life. 
