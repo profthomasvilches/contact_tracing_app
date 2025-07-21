@@ -155,8 +155,8 @@ end
     #n_neg_tests::Int64 = 0 # Taiye
 
     # Taiye (2025.06.09): Tentative contact change rates
-    contact_change_rate::Float64 = 0.80
-    contact_change_2::Float64 = 0.50
+    contact_change_rate::Float64 = 1.0
+    contact_change_2::Float64 = 1.0
 
     # Taiye (2025.06.12): Attempting to correct 'ERROR: type ModelParameters has no field testing'
     testing::Bool = false
@@ -1056,6 +1056,7 @@ export _get_betavalue
         x.nextday_meetcnt = cnt
     
     elseif !(x.health_status == (DED)) # Taiye
+        #todo TESTING: set cnt below to 0
         cnt = rand(negative_binomials_shelter(ag,p.contact_change_2))  # expensive operation, try to optimize
       
     # Taiye (2025.06.09): nextday_meetcnt_w is only used here and could refer to workplaces, which would make it unnecessary.
