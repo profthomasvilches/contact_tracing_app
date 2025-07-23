@@ -106,7 +106,7 @@ Base.@kwdef mutable struct Human
     ncontacts_day::Int8 = 0
     testedpos::Bool = false
     notified::Bool = false
-    timetotest::Int64 = -1
+    timetotest::Int64 = 9999
     n_tests_perf::Int64 = 0
     time_since_testing::Int64 = 0
 
@@ -683,13 +683,14 @@ function time_update()
     
     if p.testing
         for x in humans
-            if x.notified && x.n_tests_perf <= p.n_tests && x.timetotest == 0 && x.time_since_testing >= p.time_between_tests && x.n_neg_tests <= x.n_tests_perf # Taiye
+            if x.notified && !x.testedpos && x.n_tests_perf <= p.n_tests && x.timetotest <= 0 && x.time_since_testing >= p.time_between_tests # Taiye
                 testing_infection(x, p.test_ra)
                 
                 x.time_since_testing = 0
                 x.n_tests_perf += 1
                 if x.n_tests_perf == p.n_tests
                     x.notified = false
+                    x.n_tests_perf = 0
                 end
             end
         end
@@ -880,7 +881,6 @@ function testing_infection(x::Human, teste)
 
     else # Taiye: counting the number of negative tests performed.
           x.n_neg_tests += 1
-          x.timetotest = p.time_until_testing
     end
 
 end
