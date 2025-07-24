@@ -149,7 +149,7 @@ end
     # Taiye: I believe that PCR tests are the only ones being considered.
 
     time_until_testing::Int64 = 1
-    n_tests::Int64 = 1 # Taiye (2025.07.20): Restore to 2
+    n_tests::Int64 = 2 # Taiye (2025.07.20): Restore to 2
     time_between_tests::Int64 = 0
 
     #n_neg_tests::Int64 = 0 # Taiye
@@ -1127,22 +1127,42 @@ function perform_contacts(x,gpw,grp_sample,xhealth)
             
              if y.has_app && x.has_app
 
-                # Taiye (2025.07.23)
-              #  x_con_vec = repeat([0],x.ncontacts_day+1)
-               # y_con_vec = repeat([0],y.ncontacts_day+1)
-                #for i = 1:length(x.contacts[1])
-                 #   x_con_vec[i] = x.contacts[1][i]
-               # end
-                #x.contacts[1] = x_con_vec
-               # for i = 1:length(y.contacts[1])
-                #    y_con_vec[i] = y.contacts[1][i]
-               # end
-                #y.contacts[1] = y_con_vec
+                x_len = length(x.contacts[1])
+                y_len = length(y.contacts[1])
 
-                x.ncontacts_day = x.ncontacts_day+1
-                x.contacts[1][x.ncontacts_day] = y.idx
-                y.ncontacts_day = y.ncontacts_day+1
-                y.contacts[1][y.ncontacts_day] = x.idx
+                resize!(x.contacts[1], x.ncontacts_day + 1)
+                resize!(y.contacts[1], y.ncontacts_day + 1)
+
+                for i = x_len+1:length(x.contacts[1])
+                    x.contacts[1][i] = 0
+                end
+                for j = y_len+1:length(y.contacts[1])
+                    y.contacts[1][j] = 0
+                end
+                
+                x.contacts[1][x.ncontacts_day + 1] = y.idx
+                y.contacts[1][y.ncontacts_day + 1] = x.idx
+                
+                x.ncontacts_day += 1
+                y.ncontacts_day += 1
+
+
+                # Taiye (2025.07.23)
+#                x_con_vec = repeat([0],x.ncontacts_day+1)
+ #               y_con_vec = repeat([0],y.ncontacts_day+1)
+  #              for i = 1:length(x.contacts[1])
+   #                 x_con_vec[i] = deepcopy(x.contacts[1][i])
+    #            end
+     #           x.contacts[1] = deepcopy(x_con_vec)
+      #          for i = 1:length(y.contacts[1])
+       #             y_con_vec[i] = deepcopy(y.contacts[1][i])
+        #        end
+         #       y.contacts[1] = deepcopy(y_con_vec)
+
+          #      x.ncontacts_day = x.ncontacts_day+1
+          #      x.contacts[1][x.ncontacts_day] = y.idx
+           #     y.ncontacts_day = y.ncontacts_day+1
+            #    y.contacts[1][y.ncontacts_day] = x.idx
              end
 
 
