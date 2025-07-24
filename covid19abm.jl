@@ -372,7 +372,7 @@ export main
 function dist_app(humans, p)
     # Taiye (2025.06.12): pos = findall(x.age in p.ageintapp[1]:p.ageintapp[2], humans)
     pos = findall(x->x.age in p.ageintapp[1]:p.ageintapp[2], humans)
-    pos = sample(pos, Int(round(p.app_coverage*p.popsize)))
+    pos = sample(pos, Int(round(p.app_coverage*length(pos))), replace = false)
 
     for i in pos
         humans[i].has_app = true
