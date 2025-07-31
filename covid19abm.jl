@@ -144,7 +144,7 @@ end
     isolation_days::Int64 = 5
 
     # Taiye (2025.07.29)
-    # ageintapp::Vector{Int64} = [10; 60]
+    #ageintapp::Vector{Int64} = [10; 60]
     ageintapp::Vector{Int64} = [18; 70]
     ##for testing
 
@@ -952,6 +952,7 @@ function move_to_inf(x::Human)
     θ = (0.05, 0.1, 0.15, 0.4, 0.8) # Taiye (2025.07.30): rate at which presymptomatic individuals enter the severe class
     mh = [0.0002; 0.0015; 0.011; 0.0802; 0.381] # death rate for severe cases.
 
+    #mh_2 = mh
     mh_2 = round.(θ.*mh,digits=5) # Taiye (2025.07.30): 
  
     # Taiye: The following lines might be unnecessary.
@@ -1138,12 +1139,13 @@ function perform_contacts(x,gpw,grp_sample,xhealth)
             ycnt = y.nextday_meetcnt  
           #  ycnt == 0 && continue 
 
-           # xcnt = x.nextday_meetcnt
+            xcnt = x.nextday_meetcnt # Taiye (2025.07.31)
             #xcnt == 0 && continue 
 
             y.nextday_meetcnt = y.nextday_meetcnt - min(1,ycnt) # remove a contact
-           # x.nextday_meetcnt = x.nextday_meetcnt - min(1,xcnt)
+            x.nextday_meetcnt = x.nextday_meetcnt - min(1,xcnt) # Taiye (2025.07.31)
 
+            xcnt == 0 && continue # Taiye (2025.07.31)
             ycnt == 0 && continue # (Taiye 2025.07.22; changed in meeting)
             y.idx == x.idx && continue # Taiye 2025.07.30: verifies that indexes are not the same
             
@@ -1192,36 +1194,36 @@ function perform_contacts(x,gpw,grp_sample,xhealth)
             if y.has_app && x.has_app
                 x.ncontacts_day = x.ncontacts_day+1
                 # Taiye (2025.06.27): Attempting to correct BoundsError: attempt to access 1-element Vector{Int16} at index [2]
-               # if length(x.contacts[1]) >= x.ncontacts_day
-                 #   println("Index:")
-                  #  println(x.idx)
-                   # println("Test:")
+                if length(x.contacts[1]) >= x.ncontacts_day
+                   # println("Index:")
+                    #println(x.idx)
+                  #  println("Test:")
                    # println(x.contacts[1])
-                x.contacts[1][x.ncontacts_day] = y.idx
+                    x.contacts[1][x.ncontacts_day] = y.idx
 
                 # Taiye (2025.07.29): Testing bug
-                #else
-                 #   println("x.idx:")
-                  #  println(x.idx)
-                   # println("x.contacts[1]:")
-                    #println(x.contacts[1])
-                   # println("The x.ncontacts_day:")
-                    #println(x.ncontacts_day)
+                else
+                    println("x.idx:")
+                    println(x.idx)
+                    println("x.contacts[1]:")
+                    println(x.contacts[1])
+                    println("The x.ncontacts_day:")
+                    println(x.ncontacts_day)
 
-           #     end
+                end
              # Taiye (2025.06.27): Attempting to correct BoundsError: attempt to access 1-element Vector{Int16} at index [2]
                 y.ncontacts_day = y.ncontacts_day+1
-            #    if length(y.contacts[1]) >= y.ncontacts_day
-                y.contacts[1][y.ncontacts_day] = x.idx
+                if length(y.contacts[1]) >= y.ncontacts_day
+                  y.contacts[1][y.ncontacts_day] = x.idx
                 # Taiye (2025.07.29): Testing bug
-                #else
-                 #   println("y.idx:")
-                  #  println(y.idx)
-                   # println("y.contacts[1]:")
-                    #println(y.contacts[1])
-                  #  println("The y.ncontacts_day:")
-                   # println(y.ncontacts_day)
-               # end
+                else
+                    println("y.idx:")
+                    println(y.idx)
+                    println("y.contacts[1]:")
+                    println(y.contacts[1])
+                    println("The y.ncontacts_day:")
+                    println(y.ncontacts_day)
+                end
             end
             
             #adj_beta = 0 # adjusted beta value by strain and vaccine efficacy
