@@ -802,7 +802,7 @@ function vector_probs()
 end
 
 
-function _get_prob_test(x::Human,test::Int64)
+function _get_prob_test(x::Human,test::Int64,sens)
     M = get_matrix(x,test)
     pp = [0.001 0.002 0.002 0.002]
     #1 - RT-PCR, 2 - Abbott_PanBio 3 - BTNX_Rapid_Response	4 - Artron
@@ -816,9 +816,19 @@ function _get_prob_test(x::Human,test::Int64)
     else
         #Let's create a Tuple with one matrix for each strain
         d = x.daysinf+1 #first row is 0
-        prob = M[x.incubationp,d]
 
-        prob = x.wentto > 0 ? prob*(p.asymp_red^(x.wentto-1)) : prob
+        # Taiye (2025.07.14): Returning a probability of 1 if an individual is infected (Remove).
+        #prob = M[x.incubationp,d]
+        #prob = x.wentto > 0 ? prob*(p.asymp_red^(x.wentto-1)) : prob
+
+        # Taiye (2025.07.28)
+        if sens == 1
+            prob = 1
+        else
+            prob = M[x.incubationp,d]
+            prob = x.wentto > 0 ? prob*(p.asymp_red^(x.wentto-1)) : prob
+        end
+        # prob = 1
 
         #prob = max(prob,pp[1,test]) comented because there is no false positive prob
 
