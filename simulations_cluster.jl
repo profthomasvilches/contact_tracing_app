@@ -80,9 +80,13 @@ function run(myp::cv.ModelParameters, nsims=1000, folderprefix="./")
     ag6 = vcat([cdr[i].g6 for i = 1:nsims]...)
     ag7 = vcat([cdr[i].g7 for i = 1:nsims]...)
 
+    # Taiye (2025.08.06):
+    use_1 = vcat([cdr[i].u1 for i = 1:nsims]...)
+    use_2 = vcat([cdr[i].u2 for i = 1:nsims]...)
+
     # Taiye (2025.06.12): We are not considering workplaces.
     # mydfs = Dict("all" => allag, "ag1" => ag1, "ag2" => ag2, "ag3" => ag3, "ag4" => ag4, "ag5" => ag5, "ag6" => ag6,"ag7" => ag7, "working"=>working)
-    mydfs = Dict("all" => allag, "ag1" => ag1, "ag2" => ag2, "ag3" => ag3, "ag4" => ag4, "ag5" => ag5, "ag6" => ag6,"ag7" => ag7)
+    mydfs = Dict("all" => allag, "ag1" => ag1, "ag2" => ag2, "ag3" => ag3, "ag4" => ag4, "ag5" => ag5, "ag6" => ag6,"ag7" => ag7, "use_1" => use_1, "use_2" => use_2)
 
     #println(mydfs["all"]) # Taiye (2025.06.21): Testing
     #mydfs = Dict("all" => allag, "working"=>working, "kids"=>kids)
@@ -122,6 +126,9 @@ function run(myp::cv.ModelParameters, nsims=1000, folderprefix="./")
     # Taiye (2025.06.06): writedlm(string(folderprefix,"/nleft.dat"),hcat([cdr[i].nleft for i=1:nsims]...))
     writedlm(string(folderprefix,"/totalisog.dat"),vcat([cdr[i].giso for i=1:nsims]))
     #writedlm(string(folderprefix,"/totalisow.dat"),vcat([cdr[i].wiso for i=1:nsims]))
+
+    # Taiye (2025.08.06):
+    writedlm(string(folderprefix,"/totalquar.dat"),vcat([cdr[i].quar_tot for i=1:nsims]))
 
     return mydfs
 end
