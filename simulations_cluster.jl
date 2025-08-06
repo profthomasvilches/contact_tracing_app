@@ -128,7 +128,8 @@ function run(myp::cv.ModelParameters, nsims=1000, folderprefix="./")
     #writedlm(string(folderprefix,"/totalisow.dat"),vcat([cdr[i].wiso for i=1:nsims]))
 
     # Taiye (2025.08.06):
-    writedlm(string(folderprefix,"/totalquar.dat"),vcat([cdr[i].quar_tot for i=1:nsims]))
+    #? Thomas: Here, you do not need the vcat, because you are returning one single number. Just like the R0.
+    writedlm(string(folderprefix,"/totalquar.dat"),[cdr[i].quar_tot for i=1:nsims])
 
     return mydfs
 end

@@ -256,9 +256,9 @@ function runsim(simnum, ip::ModelParameters)
     #wiso = map(y-> sum([ii.totaldaysiso for ii in humans[y]]),workiso_gr)
 
     # Taiye (2025.08.06):
-    bin_vec = [0,1]
-    quar_dis = map(y -> findall(x -> x.quar in y, humans),bin_vec)
-    quar_tot = map(y -> sum([x.quar for x in humans[y]]),quar_dis)
+    #? Thomas: this will transform the Boolean variable to integer. You just need to add the zeros and ones.
+    #? the result is one single number... this makes difference in the simulations_cluster file
+    quar_tot = sum([Int(x.quar) for x in humans])
 
 
     # Taiye (2025.08.06):
