@@ -5,7 +5,7 @@ module covid19abm
 # - if someone tested negative, they will test again and again until the number is reached or is positive
 # - be careful: new notification cannot set the times to zero if someone is in a series of testing
 
-# Edit: 2025.09.10
+# Edit: 2025.09.21
 # Any edits that I make will include "#Taiye:".
 
 
@@ -121,24 +121,28 @@ Base.@kwdef mutable struct Human
 
     # Taiye (2025.09.07):
     symp_inf::Bool = false
+
+    # Taiye (2025.09.17):
+    tstd::Bool = false # Has an individual tested at some point?
+    not_asp::Bool = false # Has an individual been notified at some point?
 end
 
 ## default system parameters
 @with_kw mutable struct ModelParameters @deftype Float64    ## use @with_kw from Parameters
-    β = 0.0345       
+    β = 0.1 # 0.0345       
     seasonal::Bool = false ## seasonal betas or not
     popsize::Int64 = 10000
     prov::Symbol = :ontario
     calibration::Bool = false
     calibration2::Bool = false 
     start_several_inf::Bool = true
-    modeltime::Int64 = 435
+    modeltime::Int64 = 365
     initialinf::Int64 = 1
     fmild::Float64 = 0.5  ## percent of people practice self-isolation
     # Taiye: Could be useful later for keeping track of the population in isolation.
 
-    start_testing::Int64 = 2 # Taiye (2025.06.30): 0 -> 2
-    test_for::Int64 = 200 # Taiye (2025.07.01): 0 -> 2 -> 200
+    start_testing::Int64 = 1 # Taiye (2025.06.30): 0 -> 2
+    test_for::Int64 = 365 # Taiye (2025.07.01): 0 -> 2 -> 200
     fsevere::Float64 = 1.0 #
     frelasymp::Float64 = 0.26 ## relative transmission of asymptomatic
     fctcapture::Float16 = 0.0 ## how many symptomatic people identified
@@ -147,7 +151,7 @@ end
 
     file_index::Int16 = 0
     
-    app_coverage = 1.0
+    app_coverage = 0.8
     track_days::Int8 = 3
     
     # Taiye (2025.09.03): 5 -> 7
@@ -162,8 +166,8 @@ end
     test_ra::Int64 = 2 # Taiye (2025.06.24): 1 - PCR, 2 - Abbott_PanBio 3 - 	BD VERITO	4 - SOFIA
     # Taiye: I believe that PCR tests are the only ones being considered.
 
-    time_until_testing::Int64 = 1
-    n_tests::Int64 = 2 # Taiye (2025.07.20): Restore to 2
+    time_until_testing::Int64 = 0
+    n_tests::Int64 = 1 # Taiye (2025.07.20): Restore to 2
     time_between_tests::Int64 = 3 # Taiye (2025.09.03): 0 -> 3
 
     #n_neg_tests::Int64 = 0 # Taiye
@@ -179,15 +183,15 @@ end
     asymp_red::Float64 = 0.5 # Taiye (2025.06.24): tentative value
 
     # Taiye (2025.07.20): Notification parameter
-    not_swit::Bool = false
+    not_swit::Bool = true
 
     # Taiye (2025.07.28): number of simulations, number of contacts in isolation
     num_sims::Int64 = 500
-    iso_con::Int64 = 0
+    iso_con::Int64 = 1
     test_sens::Int64 = 1
 
     # Taiye (2025.09.10):
-    comp_bool::Bool = true
+    comp_bool::Bool = false
 end
 
 
@@ -733,24 +737,34 @@ function time_update()
 
             # Taiye (2025.09.10): symptomatic individuals will always comply
             if !p.comp_bool && rand() < round(0.5, digits = 1) && !x.symp_inf
-                x.comp = false
+             continue # Taiye (2025.09.21)
+               # x.comp = false
             end
 
-            if x.notified && !x.testedpos && x.n_tests_perf <= p.n_tests && x.timetotest <= 0 && x.time_since_testing >= p.time_between_tests && x.comp # Taiye (2025.09.07)
-                testing_infection(x, p.test_ra)
+            if x.notified && !x.testedpos && x.n_tests_perf <= p.n_tests && x.timetotest <= 0 && x.time_since_testing >= p.time_between_tests # Taiye (2025.09.18): Removed x.comp
+               
+               # Taiye (2025.09.18): symptomatic individuals will always comply
+                #if !p.comp_bool && rand() < round(0.5, digits = 1) && !x.symp_inf
+                 #   x.comp = false
+                #end
+                  
+                # Taiye (2025.09.21): Removed if x.comp
+                 testing_infection(x, p.test_ra)
                 
-                x.time_since_testing = 0
-                x.n_tests_perf += 1
-                if x.n_tests_perf == p.n_tests
+                 x.time_since_testing = 0
+                 x.n_tests_perf += 1
+                 if x.n_tests_perf == p.n_tests
                     x.notified = false
                     x.n_tests_perf = 0
-                end
+                 end
+                
 
             # # Taiye (2025.09.07):
             # elseif !x.testedpos && x.n_neg_tests >= 1 && x.pre_test && x.symp_inf && x.n_tests_perf < p.n_tests
             #     x.testedpos = true
             #     _set_isolation(x, true, :test)
             #     send_notification(x,p.not_swit)
+            
             end
         end
     end
@@ -935,6 +949,7 @@ end
 export move_to_pre
 
 function testing_infection(x::Human, teste)
+    x.tstd = true # Taiye (2025.09.17)
     pp = _get_prob_test(x,teste,p.test_sens)
     if rand() < pp
         x.testedpos = true
@@ -957,6 +972,8 @@ function send_notification(x::Human,switch) # Taiye (2025.05.22): added an 's' t
             if 1 <= i <= length(humans) && !humans[i].notified # Taiye: To avoid new notifications resetting times.
                 humans[i].notified = true
                 humans[i].timetotest = p.time_until_testing
+
+                humans[i].not_asp = true # Taiye (2025.09.17)
             end
             #humans[i].time_since_testing = 0#p.time_between_tests # Taiye
         end
@@ -1029,11 +1046,14 @@ function move_to_inf(x::Human)
         #testing_infection(x, p.test_ra)
         x.notified = true
 
-       # Taiye (2025.06.23): humans[i].timetotest = 1
-        x.timetotest = 1
+       # Taiye (2025.09.19): humans[i].timetotest = 1 -> p.time_until_testing
+        x.timetotest = p.time_until_testing
+
+        x.not_asp = true # Taiye (2025.09.17)
     end
 
-    _set_isolation(x, true, :symp)
+    _set_isolation(x, true, :symp) 
+
    # else ## no hospital for this lucky (but severe) individual 
     if rand() < mh_2[gg]
             x.exp = x.dur[4] 
