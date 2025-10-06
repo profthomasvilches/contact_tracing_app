@@ -5,7 +5,7 @@ module covid19abm
 # - if someone tested negative, they will test again and again until the number is reached or is positive
 # - be careful: new notification cannot set the times to zero if someone is in a series of testing
 
-# Edit: 2025.09.23
+# Edit: 2025.10.04
 # Any edits that I make will include "#Taiye:".
 
 
@@ -127,7 +127,14 @@ Base.@kwdef mutable struct Human
     not_asp::Bool = false # Has an individual been notified at some point?
 
     # Taiye (2025.09.22):
-    reported = false
+    reported::Bool = false
+
+    # Taiye (2025.09.25):
+    pre_test::Bool = false
+    iso_count::Int64 = 0
+
+    # Taiye (2025.09.26):
+    true_iso::Int64 = 0
 end
 
 ## default system parameters
@@ -163,13 +170,13 @@ end
 
     # Taiye (2025.07.29)
     #ageintapp::Vector{Int64} = [10; 60]
-    ageintapp::Vector{Int64} = [18; 65] # Taiye (2025.09.03): Maximum aged changed to 65
+    ageintapp::Vector{Int64} = [18; 65] # Taiye (2025.09.03): Maximum age changed to 65
     ##for testing
 
     test_ra::Int64 = 2 # Taiye (2025.06.24): 1 - PCR, 2 - Abbott_PanBio 3 - 	BD VERITO	4 - SOFIA
     # Taiye: I believe that PCR tests are the only ones being considered.
 
-    time_until_testing::Int64 = 0
+    time_until_testing::Int64 = 1
     n_tests::Int64 = 1 # Taiye (2025.07.20): Restore to 2
     time_between_tests::Int64 = 3 # Taiye (2025.09.03): 0 -> 3
 
@@ -191,10 +198,10 @@ end
     # Taiye (2025.07.28): number of simulations, number of contacts in isolation
     num_sims::Int64 = 500
     iso_con::Int64 = 1
-    test_sens::Int64 = 1
+    test_sens::Int64 = 0
 
     # Taiye (2025.09.10):
-    comp_bool::Bool = false
+    comp_bool::Bool = true
 end
 
 
@@ -760,9 +767,21 @@ function time_update()
                 
                  x.time_since_testing = 0
                  x.n_tests_perf += 1
-                 if x.n_tests_perf == p.n_tests
+
+                 if !x.symp_inf # Taiye (2025.10.05): Added !x.symp_inf so that symptomatic individuals can test 3 times
+                    if x.n_tests_perf == p.n_tests 
+                        x.notified = false
+                        x.n_tests_perf = 0
+                    end
+
+                 # Taiye (2025.10.05): Work on time_since_testing. Remember that 3 days pass between 1st and 2nd tests and 1 between second and third.
+                 elseif x.symp_inf 
+                   if x.n_tests_perf == p.n_tests
+                    x.time_since_testing = p.time_between_tests 
+                   elseif x.n_tests_perf > p.n_tests # Taiye (2025.10.05)
                     x.notified = false
                     x.n_tests_perf = 0
+                   end
                  end
                 
 
@@ -777,7 +796,9 @@ function time_update()
         
         # Taiye (2025.09.24):
         for x in humans
-            if x.testedpos && !x.reported
+            if x.iso && x.symp_inf && x.testedpos # Taiye (2025.10.05): Added if-statement so that symptomatic cases that tested positive send notifications daily.
+                send_notification(x,p.not_swit)
+            elseif x.testedpos && !x.reported && !x.symp_inf # Taiye (2025.10.05): Added !x.symp_inf so that symptomatic cases that tested positive send notifications daily.
                 send_notification(x,p.not_swit)
             end
         end
@@ -791,6 +812,9 @@ function time_update()
         x.daysinf += 1
         x.days_after_detection += 1 #we don't care about this untill the individual is detected
         x.daysisolation += 1
+
+        # Taiye (2025.09.25):
+        x.iso_count += 1
         
 
         if x.tis >= x.exp             
@@ -824,6 +848,9 @@ function time_update()
             # if x.testedpos # if the individual was tested and the days of isolation is finished, we can return the tested to false
             #     x.testedpos = false
             # end
+
+            # Taiye (2025.09.26):
+            x.true_iso = x.daysisolation
             
         end
         # run covid-19 functions for other integrated dynamics. 
@@ -975,6 +1002,11 @@ function testing_infection(x::Human, teste)
         # Taiye (2025.06.24): send_notifications(x)
       #  send_notification(x,p.not_swit)
 
+      # Taiye (2025.09.25):
+        if x.health_status == PRE
+            x.pre_test = true
+        end
+
     else # Taiye: counting the number of negative tests performed.
           x.n_neg_tests += 1
     end
@@ -982,7 +1014,12 @@ end
 
 function send_notification(x::Human,switch) # Taiye (2025.05.22): added an 's' to 'human'; Update: 'humans' -> 'Human'
     if switch
-        v = vcat(x.contacts...)
+        if x.symp_inf && x.iso && x.testedpos # Taiye (2025.10.05): Isolated symptomatic cases will notify contacts from the previous day.
+            v = x.contacts[1]
+        else
+            v = vcat(x.contacts...)
+        end
+
         for i in v
             if 1 <= i <= length(humans) && !humans[i].notified # Taiye: To avoid new notifications resetting times.
                 humans[i].notified = true
@@ -1069,6 +1106,10 @@ function move_to_inf(x::Human)
         x.timetotest = p.time_until_testing
 
         x.not_asp = true # Taiye (2025.09.17)
+
+    # Taiye (2025.10.04):
+   # elseif p.testing && x.testedpos && x.has_app
+    #    x.reported = false
     end
 
     _set_isolation(x, true, :symp) 
