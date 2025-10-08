@@ -8,6 +8,7 @@ module covid19abm
 # Edit: 2025.07.20
 # Any edits that I make will include "#Taiye:".
 
+
 using Base
 using Parameters, Distributions, StatsBase, StaticArrays, Random, Match, DataFrames
 # @enum HEALTH SUS LAT PRE ASYMP MILD MISO INF IISO HOS ICU REC DED UNDEF
@@ -114,10 +115,6 @@ Base.@kwdef mutable struct Human
     # Taiye (2025.08.05):
     quar::Int64 = 0
 
-    # Taiye (2025.10.05):
-    symp_inf::Bool = false
-    reported::Bool = false
-
 end
 
 ## default system parameters
@@ -151,15 +148,15 @@ end
 
     # Taiye (2025.07.29)
     #ageintapp::Vector{Int64} = [10; 60]
-    ageintapp::Vector{Int64} = [18; 70]
+    ageintapp::Vector{Int64} = [18; 65]
     ##for testing
 
-    test_ra::Int64 = 2 # Taiye (2025.06.24): 1 - PCR, 2 - Abbott_PanBio 3 -     BD VERITO   4 - SOFIA
+    test_ra::Int64 = 2 # Taiye (2025.06.24): 1 - PCR, 2 - Abbott_PanBio 3 - 	BD VERITO	4 - SOFIA
     # Taiye: I believe that PCR tests are the only ones being considered.
 
     time_until_testing::Int64 = 1
     n_tests::Int64 = 2 # Taiye (2025.07.20): Restore to 2
-    time_between_tests::Int64 = 0
+    time_between_tests::Int64 = 3
 
     #n_neg_tests::Int64 = 0 # Taiye
 
@@ -184,6 +181,7 @@ end
     # Taiye (2025.10.07): For consistency with simulations_cluster.jl and scen.jl.
     comp_bool::Bool = true
 end
+
 
 Base.show(io::IO, ::MIME"text/plain", z::Human) = dump(z)
 
@@ -264,6 +262,7 @@ function runsim(simnum, ip::ModelParameters)
     #? Thomas: this will transform the Boolean variable to integer. You just need to add the zeros and ones.
     #? the result is one single number... this makes difference in the simulations_cluster file
     quar_tot = sum([Int(x.quar) for x in humans])
+
 
     # Taiye (2025.08.06):
     # return (a=all1, g1=ag1, g2=ag2, g3=ag3, g4=ag4, g5=ag5,g6=ag6,g7=ag7, work = work,vector_dead=vector_ded,nra=nra,npcr=npcr, R0 = R01, niso_t_p=niso_t_p, nleft=nleft,giso = giso, wiso = wiso)
@@ -396,6 +395,7 @@ export main
     #return aux,breaks
 #end
 
+
 function dist_app(humans, p, sim)
     # Taiye (2025.06.12): pos = findall(x.age in p.ageintapp[1]:p.ageintapp[2], humans)
     rng = MersenneTwister(2421*sim)
@@ -408,6 +408,7 @@ function dist_app(humans, p, sim)
         humans[i].has_app = true
     end
 end
+
 
 function reset_params(ip::ModelParameters)
     # the p is a global const
@@ -429,6 +430,7 @@ function reset_params(ip::ModelParameters)
     resize!(humans, p.popsize)
 end
 export reset_params, reset_params_default
+
 
 ## Data Collection/ Model State functions
 function _get_model_state(st, hmatrix)
@@ -610,6 +612,7 @@ export get_province_ag
 #end
 #export comorbidity
 
+
 function initialize() 
     agedist = get_province_ag(p.prov)
     agebraksnew = [0:4,5:14,15:24,25:34,35:44,45:54,55:64,65:74,75:84,85:99]
@@ -730,14 +733,6 @@ function time_update()
         end
     end
 
-    for x in humans
-        if x.testedpos && x.symp_inf && x.testedpos # Taiye (2025.10.05): Added if-statement so that symptomatic cases that tested positive send notifications daily.
-                send_notification(x,p.not_swit)
-        elseif x.testedpos && !x.reported && !x.symp_inf # Taiye (2025.10.05): Added !x.symp_inf so that symptomatic cases that tested positive send notifications daily.
-                send_notification(x,p.not_swit)
-        end
-    end
-
     for x in humans 
         x.tis += 1 
         x.doi += 1 # increase day of infection. variable is garbage until person is latent
@@ -823,6 +818,7 @@ function sample_epi_durations(y::Human)
 
     lat_dist = Distributions.truncated(LogNormal(1.434, 0.661), 4, 7) # truncated between 4 and 7
     pre_dist = Distributions.truncated(Gamma(1.058, 5/2.3), 0.8, 3)#truncated between 0.8 and 3
+
 
 
     asy_dist = Gamma(5, 1)
@@ -920,8 +916,8 @@ function testing_infection(x::Human, teste)
         x.testedpos = true
         _set_isolation(x, true, :test)
 
-        # Taiye (2025.06.24):
-       # send_notification(x,p.not_swit)
+        # Taiye (2025.06.24): send_notifications(x)
+        send_notification(x,p.not_swit)
 
     else # Taiye: counting the number of negative tests performed.
           x.n_neg_tests += 1
@@ -939,8 +935,6 @@ function send_notification(x::Human,switch) # Taiye (2025.05.22): added an 's' t
             end
             #humans[i].time_since_testing = 0#p.time_between_tests # Taiye
         end
-
-        x.reported = true
     end
 
 end
@@ -976,11 +970,10 @@ end
 #end
 #export move_to_mild
 
+
 function move_to_inf(x::Human)
     ## transfers human h to the severe infection stage for γ days
     ## for swap, check if person will be hospitalized, selfiso, die, or recover
-
-    x.symp_inf = true # Taiye (2025.10.05)
  
     groups = [0:34,35:54,55:69,70:84,85:100]
     gg = findfirst(y-> x.age in y,groups)
@@ -996,7 +989,7 @@ function move_to_inf(x::Human)
     #h = x.comorbidity == 1 ? comh : 0.04 #0.376
     #c = x.comorbidity == 1 ? 0.396 : 0.25
     #time_to_hospital = Int(round(rand(Uniform(2, 5)))) # duration symptom onset to hospitalization
-    
+   	
     x.health = x.swap
     x.health_status = x.swap_status
     x.swap = UNDEF
@@ -1012,7 +1005,7 @@ function move_to_inf(x::Human)
         x.timetotest = 1
     end
 
-    _set_isolation(x, true, :symp) 
+   # _set_isolation(x, true, :inf) 
 
        
    # else ## no hospital for this lucky (but severe) individual 
@@ -1030,6 +1023,7 @@ function move_to_inf(x::Human)
     ## before returning, check if swap is set 
     #x.swap == UNDEF && error("agent I -> ?")
 end
+
 
 function move_to_dead(h::Human)
     # no level of alchemy will bring someone back to life. 
@@ -1064,6 +1058,7 @@ function move_to_recovered(h::Human)
     
     # isolation property has no effect in contact dynamics anyways (unless x == SUS)
 end
+
 
 @inline function _get_betavalue(xhealth) 
     #bf = p.β ## baseline PRE
@@ -1206,6 +1201,7 @@ function perform_contacts(x,gpw,grp_sample,xhealth)
              #   x.ncontacts_day += 1
               #  y.ncontacts_day += 1
 
+
                 # Taiye (2025.07.23)
 #                x_con_vec = repeat([0],x.ncontacts_day+1)
  #               y_con_vec = repeat([0],y.ncontacts_day+1)
@@ -1223,6 +1219,7 @@ function perform_contacts(x,gpw,grp_sample,xhealth)
            #     y.ncontacts_day = y.ncontacts_day+1
             #    y.contacts[1][y.ncontacts_day] = x.idx
             # end
+
 
 # Taiye (2025.07.23): Testing boundserror
             if y.has_app && x.has_app
@@ -1337,6 +1334,7 @@ const cm = contact_matrix()
 #export negative_binomials, contact_matrix, nbs, cm
 
 export negative_binomials
+
 
 function negative_binomials_shelter(ag,mult) 
     ## the means/sd here are calculated using _calc_avgag
