@@ -927,7 +927,11 @@ function testing_infection(x::Human, teste)
     pp = _get_prob_test(x,teste,p.test_sens)
     if rand() < pp
         x.testedpos = true
-        _set_isolation(x, true, :test)
+
+        # Taiye (2025.10.08):
+        if !x.iso
+           _set_isolation(x, true, :test)
+        end
 
         # Taiye (2025.06.24): send_notifications(x)
       #  send_notification(x,p.not_swit)
@@ -1019,7 +1023,7 @@ function move_to_inf(x::Human)
         x.timetotest = 1
     end
 
-   # _set_isolation(x, true, :symp) 
+  #  _set_isolation(x, true, :symp) 
 
        
    # else ## no hospital for this lucky (but severe) individual 
