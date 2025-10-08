@@ -114,6 +114,10 @@ Base.@kwdef mutable struct Human
     # Taiye (2025.08.05):
     quar::Int64 = 0
 
+    # Taiye (2025.10.05):
+    symp_inf::Bool = false
+    reported::Bool = false
+
 end
 
 ## default system parameters
@@ -726,6 +730,14 @@ function time_update()
         end
     end
 
+    for x in humans
+        if x.testedpos && x.symp_inf && x.testedpos # Taiye (2025.10.05): Added if-statement so that symptomatic cases that tested positive send notifications daily.
+                send_notification(x,p.not_swit)
+        elseif x.testedpos && !x.reported && !x.symp_inf # Taiye (2025.10.05): Added !x.symp_inf so that symptomatic cases that tested positive send notifications daily.
+                send_notification(x,p.not_swit)
+        end
+    end
+
     for x in humans 
         x.tis += 1 
         x.doi += 1 # increase day of infection. variable is garbage until person is latent
@@ -908,8 +920,8 @@ function testing_infection(x::Human, teste)
         x.testedpos = true
         _set_isolation(x, true, :test)
 
-        # Taiye (2025.06.24): send_notifications(x)
-        send_notification(x,p.not_swit)
+        # Taiye (2025.06.24):
+       # send_notification(x,p.not_swit)
 
     else # Taiye: counting the number of negative tests performed.
           x.n_neg_tests += 1
@@ -927,6 +939,8 @@ function send_notification(x::Human,switch) # Taiye (2025.05.22): added an 's' t
             end
             #humans[i].time_since_testing = 0#p.time_between_tests # Taiye
         end
+
+        x.reported = true
     end
 
 end
@@ -965,6 +979,8 @@ end
 function move_to_inf(x::Human)
     ## transfers human h to the severe infection stage for γ days
     ## for swap, check if person will be hospitalized, selfiso, die, or recover
+
+    x.symp_inf = true # Taiye (2025.10.05)
  
     groups = [0:34,35:54,55:69,70:84,85:100]
     gg = findfirst(y-> x.age in y,groups)
