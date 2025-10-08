@@ -152,7 +152,7 @@ end
 
     # Taiye (2025.07.29)
     #ageintapp::Vector{Int64} = [10; 60]
-    ageintapp::Vector{Int64} = [18; 70]
+    ageintapp::Vector{Int64} = [18; 65]
     ##for testing
 
     test_ra::Int64 = 2 # Taiye (2025.06.24): 1 - PCR, 2 - Abbott_PanBio 3 - 	BD VERITO	4 - SOFIA
@@ -160,7 +160,7 @@ end
 
     time_until_testing::Int64 = 1
     n_tests::Int64 = 2 # Taiye (2025.07.20): Restore to 2
-    time_between_tests::Int64 = 0
+    time_between_tests::Int64 = 3
 
     #n_neg_tests::Int64 = 0 # Taiye
 
@@ -1017,7 +1017,7 @@ function move_to_inf(x::Human)
         x.timetotest = 1
     end
 
-    _set_isolation(x, true, :symp) 
+   # _set_isolation(x, true, :symp) 
 
        
    # else ## no hospital for this lucky (but severe) individual 
