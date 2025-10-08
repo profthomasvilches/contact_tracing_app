@@ -5,9 +5,8 @@ module covid19abm
 # - if someone tested negative, they will test again and again until the number is reached or is positive
 # - be careful: new notification cannot set the times to zero if someone is in a series of testing
 
-# Edit: 2025.10.04
+# Edit: 2025.07.20
 # Any edits that I make will include "#Taiye:".
-
 
 using Base
 using Parameters, Distributions, StatsBase, StaticArrays, Random, Match, DataFrames
@@ -77,7 +76,6 @@ Base.@kwdef mutable struct Human
     #### for testing
 
     daysisolation::Int64 = 999 
-    isolation_days::Int64 = 7
 
     # days_after_detection::Int64 = 999
     # positive::Bool = false
@@ -116,43 +114,24 @@ Base.@kwdef mutable struct Human
     # Taiye (2025.08.05):
     quar::Int64 = 0
 
-    # Taiye (2025.09.03):
-    comp::Bool = true
-
-    # Taiye (2025.09.07):
-    symp_inf::Bool = false
-
-    # Taiye (2025.09.17):
-    tstd::Bool = false # Has an individual tested at some point?
-    not_asp::Bool = false # Has an individual been notified at some point?
-
-    # Taiye (2025.09.22):
-    reported::Bool = false
-
-    # Taiye (2025.09.25):
-    pre_test::Bool = false
-    iso_count::Int64 = 0
-
-    # Taiye (2025.09.26):
-    true_iso::Int64 = 0
 end
 
 ## default system parameters
 @with_kw mutable struct ModelParameters @deftype Float64    ## use @with_kw from Parameters
-    β = 0.1 # 0.0345       
+    β = 0.0345       
     seasonal::Bool = false ## seasonal betas or not
     popsize::Int64 = 10000
     prov::Symbol = :ontario
     calibration::Bool = false
     calibration2::Bool = false 
     start_several_inf::Bool = true
-    modeltime::Int64 = 365
+    modeltime::Int64 = 435
     initialinf::Int64 = 1
     fmild::Float64 = 0.5  ## percent of people practice self-isolation
     # Taiye: Could be useful later for keeping track of the population in isolation.
 
-    start_testing::Int64 = 1 # Taiye (2025.06.30): 0 -> 2
-    test_for::Int64 = 365 # Taiye (2025.07.01): 0 -> 2 -> 200
+    start_testing::Int64 = 2 # Taiye (2025.06.30): 0 -> 2
+    test_for::Int64 = 200 # Taiye (2025.07.01): 0 -> 2 -> 200
     fsevere::Float64 = 1.0 #
     frelasymp::Float64 = 0.26 ## relative transmission of asymptomatic
     fctcapture::Float16 = 0.0 ## how many symptomatic people identified
@@ -161,24 +140,22 @@ end
 
     file_index::Int16 = 0
     
-    app_coverage = 0.8
+    app_coverage = 0.4
     track_days::Int8 = 3
     
-    # Taiye (2025.09.03): 5 -> 7
-    # isolation_days::Int64 = 7 
-    #symp_days::Int64 = 5
+    isolation_days::Int64 = 5
 
     # Taiye (2025.07.29)
     #ageintapp::Vector{Int64} = [10; 60]
-    ageintapp::Vector{Int64} = [18; 65] # Taiye (2025.09.03): Maximum age changed to 65
+    ageintapp::Vector{Int64} = [18; 70]
     ##for testing
 
-    test_ra::Int64 = 2 # Taiye (2025.06.24): 1 - PCR, 2 - Abbott_PanBio 3 - 	BD VERITO	4 - SOFIA
+    test_ra::Int64 = 2 # Taiye (2025.06.24): 1 - PCR, 2 - Abbott_PanBio 3 -     BD VERITO   4 - SOFIA
     # Taiye: I believe that PCR tests are the only ones being considered.
 
     time_until_testing::Int64 = 1
-    n_tests::Int64 = 1 # Taiye (2025.07.20): Restore to 2
-    time_between_tests::Int64 = 3 # Taiye (2025.09.03): 0 -> 3
+    n_tests::Int64 = 2 # Taiye (2025.07.20): Restore to 2
+    time_between_tests::Int64 = 0
 
     #n_neg_tests::Int64 = 0 # Taiye
 
@@ -197,13 +174,12 @@ end
 
     # Taiye (2025.07.28): number of simulations, number of contacts in isolation
     num_sims::Int64 = 500
-    iso_con::Int64 = 1
-    test_sens::Int64 = 0
+    iso_con::Int64 = 0
+    test_sens::Int64 = 1
 
-    # Taiye (2025.09.10):
+    # Taiye (2025.10.07): For consistency with simulations_cluster.jl and scen.jl.
     comp_bool::Bool = true
 end
-
 
 Base.show(io::IO, ::MIME"text/plain", z::Human) = dump(z)
 
@@ -284,7 +260,6 @@ function runsim(simnum, ip::ModelParameters)
     #? Thomas: this will transform the Boolean variable to integer. You just need to add the zeros and ones.
     #? the result is one single number... this makes difference in the simulations_cluster file
     quar_tot = sum([Int(x.quar) for x in humans])
-
 
     # Taiye (2025.08.06):
     # return (a=all1, g1=ag1, g2=ag2, g3=ag3, g4=ag4, g5=ag5,g6=ag6,g7=ag7, work = work,vector_dead=vector_ded,nra=nra,npcr=npcr, R0 = R01, niso_t_p=niso_t_p, nleft=nleft,giso = giso, wiso = wiso)
@@ -417,7 +392,6 @@ export main
     #return aux,breaks
 #end
 
-
 function dist_app(humans, p, sim)
     # Taiye (2025.06.12): pos = findall(x.age in p.ageintapp[1]:p.ageintapp[2], humans)
     rng = MersenneTwister(2421*sim)
@@ -451,7 +425,6 @@ function reset_params(ip::ModelParameters)
     resize!(humans, p.popsize)
 end
 export reset_params, reset_params_default
-
 
 ## Data Collection/ Model State functions
 function _get_model_state(st, hmatrix)
@@ -633,7 +606,6 @@ export get_province_ag
 #end
 #export comorbidity
 
-
 function initialize() 
     agedist = get_province_ag(p.prov)
     agebraksnew = [0:4,5:14,15:24,25:34,35:44,45:54,55:64,65:74,75:84,85:99]
@@ -739,70 +711,19 @@ function time_update()
     
     if p.testing
         for x in humans
-
             x.timetotest -= 1
             x.time_since_testing += 1 # Taiye: We could measure this in days.
-
-            # Taiye (2025.09.03):
-            #!Thomas: it would be better change it to boolean
-
-            # Taiye (2025.09.10): symptomatic individuals will always comply
-            if !p.comp_bool && rand() < round(0.5, digits = 1) && !x.symp_inf
-
-                # Taiye (2025.09.23)
-                x.notified = false
-                x.n_tests_perf = 0
-            # continue # Taiye (2025.09.21)
-            end
-
-            if x.notified && !x.testedpos && x.n_tests_perf <= p.n_tests && x.timetotest <= 0 && x.time_since_testing >= p.time_between_tests # Taiye (2025.09.18): Removed x.comp
-               
-               # Taiye (2025.09.18): symptomatic individuals will always comply
-                #if !p.comp_bool && rand() < round(0.5, digits = 1) && !x.symp_inf
-                 #   x.comp = false
-                #end
-                  
-                # Taiye (2025.09.21): Removed if x.comp
-                 testing_infection(x, p.test_ra)
+            if x.notified && !x.testedpos && x.n_tests_perf <= p.n_tests && x.timetotest <= 0 && x.time_since_testing >= p.time_between_tests # Taiye
+                testing_infection(x, p.test_ra)
                 
-                 x.time_since_testing = 0
-                 x.n_tests_perf += 1
-
-                 if !x.symp_inf # Taiye (2025.10.05): Added !x.symp_inf so that symptomatic individuals can test 3 times
-                    if x.n_tests_perf == p.n_tests 
-                        x.notified = false
-                        x.n_tests_perf = 0
-                    end
-
-                 # Taiye (2025.10.05): Work on time_since_testing. Remember that 3 days pass between 1st and 2nd tests and 1 between second and third.
-                 elseif x.symp_inf 
-                   if x.n_tests_perf == p.n_tests
-                    x.time_since_testing = p.time_between_tests 
-                   elseif x.n_tests_perf > p.n_tests # Taiye (2025.10.05)
+                x.time_since_testing = 0
+                x.n_tests_perf += 1
+                if x.n_tests_perf == p.n_tests
                     x.notified = false
                     x.n_tests_perf = 0
-                   end
-                 end
-                
-
-            # # Taiye (2025.09.07):
-            # elseif !x.testedpos && x.n_neg_tests >= 1 && x.pre_test && x.symp_inf && x.n_tests_perf < p.n_tests
-            #     x.testedpos = true
-            #     _set_isolation(x, true, :test)
-            #     send_notification(x,p.not_swit)
-            
+                end
             end
         end
-        
-        # Taiye (2025.09.24):
-        for x in humans
-            if x.iso && x.symp_inf && x.testedpos # Taiye (2025.10.05): Added if-statement so that symptomatic cases that tested positive send notifications daily.
-                send_notification(x,p.not_swit)
-            elseif x.testedpos && !x.reported && !x.symp_inf # Taiye (2025.10.05): Added !x.symp_inf so that symptomatic cases that tested positive send notifications daily.
-                send_notification(x,p.not_swit)
-            end
-        end
-        
     end
 
     for x in humans 
@@ -813,8 +734,6 @@ function time_update()
         x.days_after_detection += 1 #we don't care about this untill the individual is detected
         x.daysisolation += 1
 
-        # Taiye (2025.09.25):
-        x.iso_count += 1
         
 
         if x.tis >= x.exp             
@@ -838,8 +757,7 @@ function time_update()
         #if the individual recovers, we need to set they free. This loop must be here
 
         # if x.iso && x.daysisolation >= p.isolation_days && !(x.health_status in (HOS,ICU,DED))
-        if x.iso && x.daysisolation >= x.isolation_days && !(x.health_status == DED) # Taiye (2025.09.07)
-      #  if x.iso && !(x.health_status == DED) && 
+        if x.iso && x.daysisolation >= p.isolation_days && !(x.health_status == DED) 
             _set_isolation(x,false,:null)
             
             x.n_tests_perf = 0 # Taiye
@@ -848,9 +766,6 @@ function time_update()
             # if x.testedpos # if the individual was tested and the days of isolation is finished, we can return the tested to false
             #     x.testedpos = false
             # end
-
-            # Taiye (2025.09.26):
-            x.true_iso = x.daysisolation
             
         end
         # run covid-19 functions for other integrated dynamics. 
@@ -875,13 +790,11 @@ export time_update
     # a person could be isolated in mild/severe phase through fmild, fsevere
     # --> if x.iso == true from CT and x.isovia == :ct, do not overwrite
     # --> if x.iso == true from PRE and x.isovia == :pi, do not overwrite
-    if x.isovia == :null || via == :symp # Taiye (2025.09.23)
+    if x.isovia == :null || via == :sev
         x.iso = iso 
         x.isovia = via
         x.daysisolation = 0
         x.days_after_detection = 0
-        x.isolation_days = via == :test ? 7 : 5
-
     elseif !iso
         x.iso = iso 
         x.isovia = via
@@ -898,7 +811,6 @@ function sample_epi_durations(y::Human)
 
     lat_dist = Distributions.truncated(LogNormal(1.434, 0.661), 4, 7) # truncated between 4 and 7
     pre_dist = Distributions.truncated(Gamma(1.058, 5/2.3), 0.8, 3)#truncated between 0.8 and 3
-
 
 
     asy_dist = Gamma(5, 1)
@@ -991,48 +903,30 @@ end
 export move_to_pre
 
 function testing_infection(x::Human, teste)
-    x.tstd = true # Taiye (2025.09.17)
     pp = _get_prob_test(x,teste,p.test_sens)
     if rand() < pp
         x.testedpos = true
-        if !x.iso
-            _set_isolation(x, true, :test)
-        end
+        _set_isolation(x, true, :test)
 
         # Taiye (2025.06.24): send_notifications(x)
-      #  send_notification(x,p.not_swit)
-
-      # Taiye (2025.09.25):
-        if x.health_status == PRE
-            x.pre_test = true
-        end
+        send_notification(x,p.not_swit)
 
     else # Taiye: counting the number of negative tests performed.
           x.n_neg_tests += 1
     end
+
 end
 
 function send_notification(x::Human,switch) # Taiye (2025.05.22): added an 's' to 'human'; Update: 'humans' -> 'Human'
     if switch
-        if x.symp_inf && x.iso && x.testedpos # Taiye (2025.10.05): Isolated symptomatic cases will notify contacts from the previous day.
-            v = x.contacts[1]
-        else
-            v = vcat(x.contacts...)
-        end
-
+        v = vcat(x.contacts...)
         for i in v
             if 1 <= i <= length(humans) && !humans[i].notified # Taiye: To avoid new notifications resetting times.
                 humans[i].notified = true
                 humans[i].timetotest = p.time_until_testing
-
-                humans[i].not_asp = true # Taiye (2025.09.17)
             end
             #humans[i].time_since_testing = 0#p.time_between_tests # Taiye
         end
-
-        # Taiye (2025.09.22):
-        x.reported = true
-
     end
 
 end
@@ -1068,13 +962,9 @@ end
 #end
 #export move_to_mild
 
-
 function move_to_inf(x::Human)
     ## transfers human h to the severe infection stage for γ days
     ## for swap, check if person will be hospitalized, selfiso, die, or recover
-
-    # Taiye (2025.09.07):
-    x.symp_inf = true
  
     groups = [0:34,35:54,55:69,70:84,85:100]
     gg = findfirst(y-> x.age in y,groups)
@@ -1090,7 +980,7 @@ function move_to_inf(x::Human)
     #h = x.comorbidity == 1 ? comh : 0.04 #0.376
     #c = x.comorbidity == 1 ? 0.396 : 0.25
     #time_to_hospital = Int(round(rand(Uniform(2, 5)))) # duration symptom onset to hospitalization
-   	
+    
     x.health = x.swap
     x.health_status = x.swap_status
     x.swap = UNDEF
@@ -1102,18 +992,13 @@ function move_to_inf(x::Human)
         #testing_infection(x, p.test_ra)
         x.notified = true
 
-       # Taiye (2025.09.19): humans[i].timetotest = 1 -> p.time_until_testing
-        x.timetotest = p.time_until_testing
-
-        x.not_asp = true # Taiye (2025.09.17)
-
-    # Taiye (2025.10.04):
-   # elseif p.testing && x.testedpos && x.has_app
-    #    x.reported = false
+       # Taiye (2025.06.23): humans[i].timetotest = 1
+        x.timetotest = 1
     end
 
     _set_isolation(x, true, :symp) 
 
+       
    # else ## no hospital for this lucky (but severe) individual 
     if rand() < mh_2[gg]
             x.exp = x.dur[4] 
@@ -1129,7 +1014,6 @@ function move_to_inf(x::Human)
     ## before returning, check if swap is set 
     #x.swap == UNDEF && error("agent I -> ?")
 end
-
 
 function move_to_dead(h::Human)
     # no level of alchemy will bring someone back to life. 
@@ -1164,7 +1048,6 @@ function move_to_recovered(h::Human)
     
     # isolation property has no effect in contact dynamics anyways (unless x == SUS)
 end
-
 
 @inline function _get_betavalue(xhealth) 
     #bf = p.β ## baseline PRE
@@ -1307,7 +1190,6 @@ function perform_contacts(x,gpw,grp_sample,xhealth)
              #   x.ncontacts_day += 1
               #  y.ncontacts_day += 1
 
-
                 # Taiye (2025.07.23)
 #                x_con_vec = repeat([0],x.ncontacts_day+1)
  #               y_con_vec = repeat([0],y.ncontacts_day+1)
@@ -1325,7 +1207,6 @@ function perform_contacts(x,gpw,grp_sample,xhealth)
            #     y.ncontacts_day = y.ncontacts_day+1
             #    y.contacts[1][y.ncontacts_day] = x.idx
             # end
-
 
 # Taiye (2025.07.23): Testing boundserror
             if y.has_app && x.has_app
@@ -1441,7 +1322,6 @@ const cm = contact_matrix()
 
 export negative_binomials
 
-
 function negative_binomials_shelter(ag,mult) 
     ## the means/sd here are calculated using _calc_avgag
     #72% reduction
@@ -1465,24 +1345,3 @@ end
 ## references: 
 # critical care capacity in Canada https://www.ncbi.nlm.nih.gov/pubmed/25888116
 end
-
-# Taiye (2025.07.05):
-#no_iso = zeros(Int64,length(humans))
-#for x in humans
- #   x.iso = false
-#end
-#for i = 1:length(humans)
- #   no_iso[i] = get_nextday_counts(humans[i])
-#end
-#histogram(no_iso,nbins=50,label = "No isolation (cnt)")
-#savefig("no_iso.png")
-
-#yes_iso = zeros(Int64,length(humans))
-#for y in humans
- #   y.iso = true
-#end
-#for i = 1:length(humans)
- #   yes_iso[i] = get_nextday_counts(humans[i])
-#end
-#histogram(yes_iso,nbins = 50, label = "Isolation Enforced (cnt)")
-#savefig("iso_enf.png")
