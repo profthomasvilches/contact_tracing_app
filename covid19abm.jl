@@ -92,6 +92,9 @@ Base.@kwdef mutable struct Human
     # Taiye (2025.08.05):
     quar::Int64 = 0
 
+    # Taiye (2025.10.08):
+    symp_inf::Bool = false
+
 end
 
 ## default system parameters
@@ -117,7 +120,7 @@ end
 
     file_index::Int16 = 0
     
-    app_coverage = 1.0
+    app_coverage = 0.6
     track_days::Int8 = 3
     
     isolation_days::Int64 = 5
@@ -690,23 +693,22 @@ function time_update()
 
     nra::Int64 = 0
     
-    # Uncomment
-   # if p.testing
-    #    for x in humans
-     #       x.timetotest -= 1
-      #      x.time_since_testing += 1 # Taiye: We could measure this in days.
-       #     if x.notified && !x.testedpos && x.n_tests_perf <= p.n_tests && x.timetotest <= 0 && x.time_since_testing >= p.time_between_tests # Taiye
-        #        testing_infection(x, p.test_ra)
+    if p.testing
+        for x in humans
+            x.timetotest -= 1
+            x.time_since_testing += 1 # Taiye: We could measure this in days.
+            if x.notified && !x.testedpos && x.n_tests_perf <= p.n_tests && x.timetotest <= 0 && x.time_since_testing >= p.time_between_tests # Taiye
+                testing_infection(x, p.test_ra)
                 
-         #       x.time_since_testing = 0
-          #      x.n_tests_perf += 1
-           #     if x.n_tests_perf == p.n_tests
-            #        x.notified = false
-             #       x.n_tests_perf = 0
-              #  end
-         #   end
-       # end
-   # end
+                x.time_since_testing = 0
+                x.n_tests_perf += 1
+                if x.n_tests_perf == p.n_tests
+                    x.notified = false
+                    x.n_tests_perf = 0
+                end
+            end
+        end
+    end
 
     for x in humans 
         x.tis += 1 
@@ -889,7 +891,10 @@ function testing_infection(x::Human, teste)
     pp = _get_prob_test(x,teste,p.test_sens)
     if rand() < pp
         x.testedpos = true
-        _set_isolation(x, true, :test)
+
+        if !x.iso
+          _set_isolation(x, true, :test)
+        end
 
         # Taiye (2025.06.24): send_notifications(x)
         send_notification(x,p.not_swit)
@@ -949,6 +954,9 @@ end
 function move_to_inf(x::Human)
     ## transfers human h to the severe infection stage for γ days
     ## for swap, check if person will be hospitalized, selfiso, die, or recover
+
+    # Taiye (2025.10.08):
+    x.symp_inf = true
  
     groups = [0:34,35:54,55:69,70:84,85:100]
     gg = findfirst(y-> x.age in y,groups)
@@ -971,13 +979,14 @@ function move_to_inf(x::Human)
     
     x.tis = 0 
     
+    # Uncomment
     #? Thomas:
-    if p.testing && !x.testedpos && x.has_app
+   # if p.testing && !x.testedpos && x.has_app
     
-        x.notified = true
+    #    x.notified = true
 
-        x.timetotest = 1
-    end
+     #   x.timetotest = 1
+   # end
 
     # Taiye (2025.10.08):
     _set_isolation(x,true,:symp)
