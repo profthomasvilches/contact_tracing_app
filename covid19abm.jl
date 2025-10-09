@@ -712,13 +712,13 @@ function time_update()
         end
 
         # Taiye (2025.09.24):
-       # for x in humans
-        #    if x.iso && x.symp_inf && x.testedpos # Taiye (2025.10.05): Added if-statement so that symptomatic cases that tested positive send notifications daily.
-         #       send_notification(x,p.not_swit)
-           # elseif x.testedpos && !x.reported && !x.symp_inf # Taiye (2025.10.05): Added !x.symp_inf so that symptomatic cases that tested positive send notifications daily.
-            #    send_notification(x,p.not_swit)
-          #  end
-       # end
+        for x in humans
+            if x.iso && x.symp_inf && x.testedpos # Taiye (2025.10.05): Added if-statement so that symptomatic cases that tested positive send notifications daily.
+                send_notification(x,p.not_swit)
+          #  elseif x.testedpos && !x.reported && !x.symp_inf # Taiye (2025.10.05): Added !x.symp_inf so that symptomatic cases that tested positive send notifications daily.
+           #     send_notification(x,p.not_swit)
+            end
+        end
 
     end
 
