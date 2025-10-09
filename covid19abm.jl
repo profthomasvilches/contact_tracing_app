@@ -697,7 +697,9 @@ function time_update()
         for x in humans
             x.timetotest -= 1
             x.time_since_testing += 1 # Taiye: We could measure this in days.
-            if x.notified && !x.testedpos && x.n_tests_perf <= p.n_tests && x.timetotest <= 0 && x.time_since_testing >= p.time_between_tests # Taiye
+
+            # Uncomment at the end of the next line (x.symp_inf should be removed)
+            if x.notified && !x.testedpos && x.n_tests_perf <= p.n_tests && x.timetotest <= 0 && x.time_since_testing >= p.time_between_tests && x.symp_inf # Taiye (2025.10.09): Added x.symp_inf
                 testing_infection(x, p.test_ra)
                 
                 x.time_since_testing = 0
@@ -708,6 +710,16 @@ function time_update()
                 end
             end
         end
+
+        # Taiye (2025.09.24):
+       # for x in humans
+        #    if x.iso && x.symp_inf && x.testedpos # Taiye (2025.10.05): Added if-statement so that symptomatic cases that tested positive send notifications daily.
+         #       send_notification(x,p.not_swit)
+           # elseif x.testedpos && !x.reported && !x.symp_inf # Taiye (2025.10.05): Added !x.symp_inf so that symptomatic cases that tested positive send notifications daily.
+            #    send_notification(x,p.not_swit)
+          #  end
+       # end
+
     end
 
     for x in humans 
@@ -897,7 +909,6 @@ function testing_infection(x::Human, teste)
         end
 
         # Taiye (2025.06.24): send_notifications(x)
-        send_notification(x,p.not_swit)
 
     else # Taiye: counting the number of negative tests performed.
           x.n_neg_tests += 1
@@ -979,14 +990,13 @@ function move_to_inf(x::Human)
     
     x.tis = 0 
     
-    # Uncomment
     #? Thomas:
-   # if p.testing && !x.testedpos && x.has_app
+    if p.testing && !x.testedpos && x.has_app
     
-    #    x.notified = true
+        x.notified = true
 
-     #   x.timetotest = 1
-   # end
+        x.timetotest = 1
+    end
 
     # Taiye (2025.10.08):
     _set_isolation(x,true,:symp)
