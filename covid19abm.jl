@@ -68,7 +68,8 @@ Base.@kwdef mutable struct Human
     # Taiye (2025.06.12):
     days_after_detection::Int64 = 0
 
-    daysinf::Int64 = 999 
+    # Taiye (2025.10.09):
+    daysinf::Int64 = 0 #999 
 
     tookpcr::Bool = false
     
@@ -99,8 +100,7 @@ Base.@kwdef mutable struct Human
     reported::Bool = false
     tstd::Bool = false
     isolation_days::Int64 = 7
-
-
+    pp::Float64 = 0.0 # probability of testing positive
 end
 
 ## default system parameters
@@ -697,23 +697,24 @@ function time_update()
 
     nra::Int64 = 0
     
-    # Uncomment
-   # if p.testing
-    #    for x in humans
-     #       x.timetotest -= 1
-      #      x.time_since_testing += 1 # Taiye: We could measure this in days.
-       #     if x.notified && !x.testedpos && x.n_tests_perf <= p.n_tests && x.timetotest <= 0 && x.time_since_testing >= p.time_between_tests # Taiye
-        #        testing_infection(x, p.test_ra)
+    if p.testing
+        for x in humans
+            x.timetotest -= 1
+            x.time_since_testing += 1 # Taiye: We could measure this in days.
+
+            # Remove x.symp_inf
+            if x.notified && !x.testedpos && x.n_tests_perf <= p.n_tests && x.timetotest <= 0 && x.time_since_testing >= p.time_between_tests && x.symp_inf # Taiye
+                testing_infection(x, p.test_ra)
                 
-         #       x.time_since_testing = 0
-          #      x.n_tests_perf += 1
-           #     if x.n_tests_perf == p.n_tests
-            #        x.notified = false
-             #       x.n_tests_perf = 0
-              #  end
-         #   end
-       # end
-   # end
+                x.time_since_testing = 0
+                x.n_tests_perf += 1
+                if x.n_tests_perf == p.n_tests
+                    x.notified = false
+                    x.n_tests_perf = 0
+                end
+            end
+        end
+    end
 
     for x in humans 
         x.tis += 1 
@@ -898,6 +899,8 @@ export move_to_pre
 function testing_infection(x::Human, teste)
     x.tstd = true
     pp = _get_prob_test(x,teste,p.test_sens)
+
+    x.pp = pp
     if rand() < pp
         x.testedpos = true
 
@@ -993,7 +996,7 @@ function move_to_inf(x::Human)
     
         x.notified = true
 
-        x.timetotest = 1
+        x.timetotest = p.time_until_testing
     end
 
     # Taiye (2025.10.09)
