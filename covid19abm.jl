@@ -381,7 +381,7 @@ function main(ip::ModelParameters,sim::Int64)
         end
         _get_model_state(st, hmatrix) ## this datacollection needs to be at the start of the for loop
         dyntrans(st, grps,sim)
-        sw = time_update() ###update the system
+        sw = time_update(st,sim) ###update the system
         
         # end of day
     end
@@ -402,7 +402,7 @@ function main(ip::ModelParameters,sim::Int64)
 
         _get_model_state(st, hmatrix) ## this datacollection needs to be at the start of the for loop
         dyntrans(st, grps,sim)
-        sw = time_update() ###update the system
+        sw = time_update(st,sim) ###update the system
 
         # Taiye (2025.06.12): sw might be a scalar
         # nra[st]+= sw[6]
@@ -473,7 +473,7 @@ function main(ip::ModelParameters,sim::Int64)
         end
         _get_model_state(st, hmatrix) ## this datacollection needs to be at the start of the for loop
         dyntrans(st, grps,sim)
-        sw = time_update() ###update the system
+        sw = time_update(st,sim) ###update the system
         
         # end of day
     end
@@ -816,7 +816,7 @@ function insert_infected(health, num, ag)
 end
 export insert_infected
 
-function time_update()
+function time_update(st,sim)
     # counters to calculate incidence
 
     nra::Int64 = 0
@@ -848,7 +848,7 @@ function time_update()
     
     for x in humans
         if x.testedpos && !x.reported # Taiye (2025.10.10)
-                send_notification(x,p.not_swit)
+                send_notification(x,p.not_swit,st,sim)
         end
     end
 
@@ -1082,12 +1082,13 @@ function testing_infection(x::Human, teste)
 
 end
 
-function send_notification(x::Human,switch) # Taiye (2025.05.22): added an 's' to 'human'; Update: 'humans' -> 'Human'
+function send_notification(x::Human,switch,st,sim) # Taiye (2025.05.22): added an 's' to 'human'; Update: 'humans' -> 'Human'
+    rng = MersenneTwister(246*st*sim)
     if switch
         v = vcat(x.contacts...)
         for i in v
             if 1 <= i <= length(humans) && !humans[i].notified # Taiye: To avoid new notifications resetting times.
-                humans[i].notified = rand() < round(0.5,digits = 1) && !p.comp_bool ? true : false
+                humans[i].notified = rand(rng) < round(0.5,digits = 1) && !p.comp_bool ? false : true
                 humans[i].timetotest = p.time_until_testing
             end
             #humans[i].time_since_testing = 0#p.time_between_tests # Taiye
