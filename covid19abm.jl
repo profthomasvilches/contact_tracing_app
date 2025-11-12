@@ -846,7 +846,7 @@ function time_update(st,sim)
         end
     end
     
-    rng = MersenneTwister(246*st*similar_type)
+    rng = MersenneTwister(246*st*sim)
     for x in humans
         if x.testedpos && !x.reported # Taiye (2025.10.10)
                 send_notification(x,p.not_swit,st,sim,rng)
