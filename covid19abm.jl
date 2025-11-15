@@ -7,85 +7,47 @@ using Parameters, Distributions, StatsBase, StaticArrays, Random, Match, DataFra
 # TO DO: remove fields not used, comment on others, rename variable to be more description
 Base.@kwdef mutable struct Human
     idx::Int64 = 0 # Each individual is identified by an index ranging from 1 to 10000.
-    
     health::HEALTH = SUS # Records the health status of a given individual. 
-    
     health_status::HEALTH = SUS # Records the health status of a given individual. 
-    
     swap::HEALTH = UNDEF # Records the health status that an individual adopts after leaving their current state.
-    
     swap_status::HEALTH = UNDEF # Records the health status that an individual adopts after leaving their current state.
-    
     sickfrom::HEALTH = UNDEF # Records the health status of the individual that infected a given person.
-    
     sickby::Int64 = -1 # Records the index of the individual that infected a given person.
-
     nextday_meetcnt::Int16 = 0 ## how many contacts for a single day
-    
     age::Int16 = 0 # in years. don't really need this but left it incase needed later
-    
     ag::Int16 = 0 # Identifies the age bracket to which an individual belongs.
-
     tis::Int16 = 0   # time in state
-
     exp::Int16 = 0   # max statetime
-    
     dur::NTuple{4, Int8} = (0, 0, 0, 0)   # Order: (latents, asymps, pres, infs) TURN TO NAMED TUPS LATER
-    
     doi::Int16 = 999   # day of infection.
-    
     iso::Bool = false  ## isolated (limited contacts)
-    
-    isovia::Symbol = :null ## isolated via quarantine (:qu), preiso (:pi), intervention measure (:im), or contact tracing (:ct)    
-
+    isovia::Symbol = :null ## isolated via quarantine (:qu), preiso (:pi), intervention measure (:im), or contact tracing (:ct)   
     wentto::Int8 = 0 # Used to compute the reduced sensitivity of a test for asymptomatic individuals. This is done in matrices_code.jl.
-
     incubationp::Int16 = 0 # Records the incubation period of an indivdual.
-
     got_inf::Bool = false # Tracks whether an individual is infected.
-
     recovered::Bool = false  # what is this? why not use the health_status field? 
     # The health_status is updated to REC when an individual recovers. The recovered field simply indicates which individuals have gotten over the infection. It plays no role in the simulations but could be useful for local testing.
-   
     daysisolation::Int64 = 999 # Records the number of days that an individual spends in isolation.
-    
     daysinf::Int64 = 0 # Tracks the amount of time that an individual has been infected.
-   
     totaldaysiso::Int32 = 0 # Tracks the number of days that an individual spends in isolation.
-  
-    has_app::Bool = false # Records whether an individual downloads the application.
-
+    has_app::Bool = false # Records whether an individual downloads the application
     contacts::Vector{Vector{Int64}} = [[0; 0]] # Records the indexes of the app-using contacts of an individual over the past three days.
-
     ncontacts_day::Int8 = 0 # Records the number of app-using contacts that an individual accumulates on a given day.
-
     testedpos::Bool = false # Records whether an individual has tested positive for the virus.
-
     notified::Bool = false # Records whether an individual has received a notification indicating that they were in close proximity to an infected person.
-    
     timetotest::Int64 = 9999 # The number of days remaining before an individual tests for the infection.
-   
     n_tests_perf::Int64 = 0 # Records the number of tests that an indiviudal performs.
-    
     time_since_testing::Int64 = 0 # The amount of time that has passed since an individual last tested.
-    
     n_neg_tests::Int64 = 0 # Records the number of negative tests that an individual has received for a given notification.
-
     quar::Int64 = 0 # Records a 1 if an individual isolates. This is used to write the totalquar.dat file that records the number of isolations that take place during each simulation.
-
     symp_inf::Bool = false # what is this? why not use the health_status field?
     # This field was used in local testing to record whether an individual became symptomatic. The health_status field was not used because of the potential for it to change to either REC or DED if a person recovers or dies, respectively.
-   
-    reported::Bool = false # Records whether an individual reported their positive test results on the application.
-
+    reported::Bool = false # Records whether an individual reported their positive test results on the application
     tstd::Bool = false # Used to record whether an individual tested at some point during the simulation. This was used in local testing and has no effect on the simulation.
-    
     isolation_days::Int64 = 8 # Assigns the minimum number of days that an individual can spend in isolation. Symptomatic individuals isolate at the onset of symptoms for 5 days, while those without symptoms isolate for 7. Should an individual develop symptoms in isolation, they remain for another 5 days after this event.
     # The reason why isolation_days is set to 8 as opposed to 7 is that the number of days in isolation increases by 1 in the same time step that they are isolated. This approach ensures that individuals are isolated for 7 time steps and released on the eighth. For newly isolated symtomatic individuals, at the end of the time step, they have recorded 0 days in isolation. They remain in isolation up to and including daysisolation = 4, meaning that they isolated for five time steps, and are released on the 6th when daysiolation = 5. 
     # The latter scenario occurs because daysisolation increases by 1 in time_update before move_to_inf and the internal summoning of _set_isolation_ are called.
-   
     inf_asp::Bool = false # Records whether an individual was infected at any point during the simulation. Used in local testing and should have no effect on the simulations.
-
 end
 
 
@@ -95,41 +57,23 @@ end
 # if a field remains constant, pull it out and make it a global const variable
 # the only fields that should be here are the ones used for scenario analysis (i.e., ones that we need to change)
 @with_kw mutable struct ModelParameters @deftype Float64    ## use @with_kw from Parameters
-   
     β = 0.1 # This is the transmission probability of the virus. It is altered based on the health status of an individual in the _get_betavalue function.
-   
     popsize::Int64 = 10000 # We define the size of the population being considered in the simulation.
-
     prov::Symbol = :ontario # We use this scenario to define the age distribution of the population using the get_province_ag and initialize functions.
-
     modeltime::Int64 = 365 # This parameter defines the duration of the simulation in days.
-
     initialinf::Int64 = 1 # This parameter defines the number of infected individuals when the simulation starts.
-
     start_testing::Int64 = 1 # This is the day that testing starts in the simulation.
-
     test_for::Int64 = 365 # The number of days that testing is performed during the simulation.
-
     file_index::Int16 = 0 # Can be used to distinguish between file names when results are sent to the cluster.
-
     app_coverage = 1.0 # The proportion of the eligible population that downloads the application.
-   
     time_until_testing::Int64 = 1 # The number of days between the receipt of a notification and performance of a test. 
-
     n_tests::Int64 = 2 # The maximum number of tests that an individual can perform for a single notification.
-
     testing::Bool = false # This field dictates whether testing is in effect.
-
     not_swit::Bool = false # This field indicates whether app-using individuals that tested positive send notifications to their contacts during the simulation. 
-    
     num_sims::Int64 = 500 # This is the number of simulations being performed.
-
     iso_con::Int64 = 0 # This refers to the number of contacts that isolated individuals encounter. If the value is 0, there will be no interaction and a random number of contacts otherwise. 
-    
     test_sens::Int64 = 1 # This is the sensitivity of the test. If the value is 1, infected individuals always test positive and otherwise, the get_matrix function, defined in matrices.jl and called in matrices_code.jl is used to determine the rate.
-  
     comp_bool::Bool = true # This controls the probability of individuals complying with the notification regulations. If true, individuals always comply and if false, individuals have a 50% chance of obeying. 
-
 end
 
 Base.show(io::IO, ::MIME"text/plain", z::Human) = dump(z) # Displays the HUMAN struct.
@@ -142,16 +86,10 @@ include("matrices.jl")
 
 ## constants 
 const humans = Array{Human}(undef, 0) # This array is used to define the unqiue characteristics of each individual.
-
 const p = ModelParameters()  ## setup default parameters
-
 const agebraks = @SVector [0:4, 5:19, 20:49, 50:64, 65:99] # We define our 5 age brackets.
-
 const time_between_tests = 3 # The number of days that pass between the first and second test that an individual takes for a single notification.
-
 export ModelParameters, HEALTH, Human, humans, time_between_tests
-
-
 
 function runsim(simnum, ip::ModelParameters)
     # function runs the `main` function, and collects the data as dataframes. 

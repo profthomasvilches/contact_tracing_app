@@ -224,3 +224,27 @@ function run_param_scen_cal(b::Float64,province::String="ontario",ic1::Int64=1,i
     #run(ip,4,folder)
    
 end
+
+# bta = 0.1
+# for i = 0:4
+    
+#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,1,1,true,0,false,1) # 1 test, 50% compliance, same day test
+#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,1,1,true,0,false,2) # 1 test, 50% compliance, next day test
+#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,1,1,true,0,false,3) # 1 test, 50% compliance, int = 3
+#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,1,1,true,0,false,4) # 1 test, 50% compliance, int = 4      
+#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,2,1,true,0,false,1) # 2 tests, 50% compliance, same day test
+#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,2,1,true,0,false,2) # 2 tests, 50% compliance, next day test
+#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,2,1,true,0,false,3) # 2 tests, 50% compliance, int = 3
+#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,2,1,true,0,false,4) # 2 tests, 50% compliance, int = 4
+              
+   
+#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,1,1,true,0,true,1) # 1 test, 100% compliance, same day test
+#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,1,1,true,0,true,2) # 1 test, 100% compliance, next day test
+#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,1,1,true,0,true,3) # 1 test, 100% compliance, 3 days later
+#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,1,1,true,0,true,4) # 1 test, 100% compliance, 4 days later
+#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,2,1,true,0,true,1) # 2 tests, 100% compliance, same day test
+#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,2,1,true,0,true,2) # 2 tests, 100% compliance, next day test
+#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,2,1,true,0,true,3) # 2 tests, 100% compliance, 3 days later
+#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,2,1,true,0,true,4) # 2 tests, 100% compliance, 4 days later
+#   # end
+# end
