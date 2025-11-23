@@ -145,17 +145,17 @@ function run(myp::cv.ModelParameters, nsims=1000, folderprefix="./")
   #  writedlm(string(folderprefix,"/dur_rec.dat"),hcat([cdr[i].dur_rec' for i=1:nsims]...))
    # writedlm(string(folderprefix,"/dur_ded.dat"),hcat([cdr[i].dur_ded' for i=1:nsims]...))
 
-    writedlm(string(folderprefix,"/lat_inc.dat"),hcat([cdr[i].lat_inc' for i=1:nsims]...))
-    writedlm(string(folderprefix,"/asymp_inc.dat"),hcat([cdr[i].asymp_inc' for i=1:nsims]...))
-    writedlm(string(folderprefix,"/pre_inc.dat"),hcat([cdr[i].pre_inc' for i=1:nsims]...))
-    writedlm(string(folderprefix,"/inf_inc.dat"),hcat([cdr[i].inf_inc' for i=1:nsims]...))
-    writedlm(string(folderprefix,"/inf_app_inc.dat"),hcat([cdr[i].inf_app_inc' for i=1:nsims]...))
+  #  writedlm(string(folderprefix,"/lat_inc.dat"),hcat([cdr[i].lat_inc' for i=1:nsims]...))
+   # writedlm(string(folderprefix,"/asymp_inc.dat"),hcat([cdr[i].asymp_inc' for i=1:nsims]...))
+    #writedlm(string(folderprefix,"/pre_inc.dat"),hcat([cdr[i].pre_inc' for i=1:nsims]...))
+  #  writedlm(string(folderprefix,"/inf_inc.dat"),hcat([cdr[i].inf_inc' for i=1:nsims]...))
+   # writedlm(string(folderprefix,"/inf_app_inc.dat"),hcat([cdr[i].inf_app_inc' for i=1:nsims]...))
 
-    writedlm(string(folderprefix,"/lat_prev.dat"),hcat([cdr[i].lat_prev' for i=1:nsims]...))
-    writedlm(string(folderprefix,"/asymp_prev.dat"),hcat([cdr[i].asymp_prev' for i=1:nsims]...))
-    writedlm(string(folderprefix,"/pre_prev.dat"),hcat([cdr[i].pre_prev' for i=1:nsims]...))
-    writedlm(string(folderprefix,"/inf_prev.dat"),hcat([cdr[i].inf_prev' for i=1:nsims]...))
-    writedlm(string(folderprefix,"/inf_app_prev.dat"),hcat([cdr[i].inf_app_prev' for i=1:nsims]...))
+#    writedlm(string(folderprefix,"/lat_prev.dat"),hcat([cdr[i].lat_prev' for i=1:nsims]...))
+ #   writedlm(string(folderprefix,"/asymp_prev.dat"),hcat([cdr[i].asymp_prev' for i=1:nsims]...))
+  #  writedlm(string(folderprefix,"/pre_prev.dat"),hcat([cdr[i].pre_prev' for i=1:nsims]...))
+   # writedlm(string(folderprefix,"/inf_prev.dat"),hcat([cdr[i].inf_prev' for i=1:nsims]...))
+    #writedlm(string(folderprefix,"/inf_app_prev.dat"),hcat([cdr[i].inf_app_prev' for i=1:nsims]...))
 
 
     return mydfs
@@ -177,7 +177,7 @@ function create_folder(ip::cv.ModelParameters,province="ontario")
     
     # Taiye (2025.07.01): Adding date to folder.
     # RF = string(main_folder,"/results_prob_","$(replace(string(ip.β), "." => "_"))","_idx_$(ip.file_index)_$(province)","_cov_$(ip.app_coverage)") 
-    RF = string(main_folder,"/notif_$(ip.not_swit)","_11_13_n_tests_$(ip.n_tests)","_results_prob_","$(replace(string(round(ip.β,digits=2)), "." => "_"))","_cov_$(round(ip.app_coverage,digits=2))","_comp_$(ip.comp_bool)","_int_$(ip.time_until_testing)","_iso_$(ip.iso_con)") 
+    RF = string(main_folder,"/exta_test_daily_inf_notif_$(ip.not_swit)","_11_23_n_tests_$(ip.n_tests)","_results_prob_","$(replace(string(round(ip.β,digits=2)), "." => "_"))","_cov_$(round(ip.app_coverage,digits=2))","_comp_$(ip.comp_bool)","_int_$(ip.time_until_testing)","_iso_$(ip.iso_con)") 
 
     if !Base.Filesystem.isdir(main_folder)
         Base.Filesystem.mkpath(main_folder)
@@ -225,26 +225,30 @@ function run_param_scen_cal(b::Float64,province::String="ontario",ic1::Int64=1,i
    
 end
 
+bta = 0.1
+#run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.5,1,1,true,0,true,1) # 1 test, 100% compliance, same day test
+run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.0,1,1,true,0,true,1) # 1 test, 100% compliance, same day test
+
 # bta = 0.1
-# for i = 0:4
+for i = 1:4
     
-#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,1,1,true,0,false,1) # 1 test, 50% compliance, same day test
-#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,1,1,true,0,false,2) # 1 test, 50% compliance, next day test
-#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,1,1,true,0,false,3) # 1 test, 50% compliance, int = 3
-#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,1,1,true,0,false,4) # 1 test, 50% compliance, int = 4      
-#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,2,1,true,0,false,1) # 2 tests, 50% compliance, same day test
-#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,2,1,true,0,false,2) # 2 tests, 50% compliance, next day test
-#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,2,1,true,0,false,3) # 2 tests, 50% compliance, int = 3
-#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,2,1,true,0,false,4) # 2 tests, 50% compliance, int = 4
+   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,1,1,true,0,false,1) # 1 test, 50% compliance, same day test
+   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,1,1,true,0,false,2) # 1 test, 50% compliance, next day test
+   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,1,1,true,0,false,3) # 1 test, 50% compliance, int = 3
+   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,1,1,true,0,false,4) # 1 test, 50% compliance, int = 4      
+   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,2,1,true,0,false,1) # 2 tests, 50% compliance, same day test
+   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,2,1,true,0,false,2) # 2 tests, 50% compliance, next day test
+   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,2,1,true,0,false,3) # 2 tests, 50% compliance, int = 3
+   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,2,1,true,0,false,4) # 2 tests, 50% compliance, int = 4
               
    
-#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,1,1,true,0,true,1) # 1 test, 100% compliance, same day test
-#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,1,1,true,0,true,2) # 1 test, 100% compliance, next day test
-#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,1,1,true,0,true,3) # 1 test, 100% compliance, 3 days later
-#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,1,1,true,0,true,4) # 1 test, 100% compliance, 4 days later
-#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,2,1,true,0,true,1) # 2 tests, 100% compliance, same day test
-#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,2,1,true,0,true,2) # 2 tests, 100% compliance, next day test
-#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,2,1,true,0,true,3) # 2 tests, 100% compliance, 3 days later
-#   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,2,1,true,0,true,4) # 2 tests, 100% compliance, 4 days later
+   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,1,1,true,0,true,1) # 1 test, 100% compliance, same day test
+   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,1,1,true,0,true,2) # 1 test, 100% compliance, next day test
+   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,1,1,true,0,true,3) # 1 test, 100% compliance, 3 days later
+   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,1,1,true,0,true,4) # 1 test, 100% compliance, 4 days later
+   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,2,1,true,0,true,1) # 2 tests, 100% compliance, same day test
+   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,2,1,true,0,true,2) # 2 tests, 100% compliance, next day test
+   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,2,1,true,0,true,3) # 2 tests, 100% compliance, 3 days later
+   run_param_scen_cal(bta,"ontario",1,0,1,365,365,500,10000,0.2*i,2,1,true,0,true,4) # 2 tests, 100% compliance, 4 days later
 #   # end
-# end
+end
