@@ -1269,7 +1269,7 @@ export _get_betavalue
         if p.iso_con == 0
             cnt = p.iso_con
         else
-            cnt = rand(negative_binomials_shelter(ag,p.contact_change_2))
+            cnt = rand(negative_binomials(ag,p.contact_change_2))
         end
     # Taiye (2025.06.09): nextday_meetcnt_w is only used here and could refer to workplaces, which would make it unnecessary.
       #  x.nextday_meetcnt_w = 0
@@ -1353,6 +1353,12 @@ function perform_contacts(x,gpw,grp_sample,xhealth)
 
             y.nextday_meetcnt = y.nextday_meetcnt - min(1,ycnt) # remove a contact
             x.nextday_meetcnt = x.nextday_meetcnt - min(1,xcnt) # Taiye (2025.07.31)
+
+            # Taiye (2025.11.25)
+            if x.iso || y.iso
+             rand() < 0.8 && continue
+            end
+		
 
             xcnt == 0 && continue # Taiye (2025.07.31)
             ycnt == 0 && continue # (Taiye 2025.07.22; changed in meeting)
@@ -1457,6 +1463,7 @@ function perform_contacts(x,gpw,grp_sample,xhealth)
     x.nextday_meetcnt = 0
 
 end
+
 function contact_matrix()
     # regular contacts, just with 5 age groups. 
     #  0-4, 5-19, 20-49, 50-64, 65+
