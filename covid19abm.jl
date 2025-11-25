@@ -838,20 +838,11 @@ function time_update(st,sim,rng)
 
             if x.notified && !x.testedpos && x.n_tests_perf <= p.n_tests && x.timetotest <= 0 && x.time_since_testing >= p.time_between_tests 
                 testing_infection(x, p.test_ra)
-
+              #  println(pp)
+                
                 x.time_since_testing = 0
                 x.n_tests_perf += 1
-
-                # Taiye (2025.11.23):
                 if x.n_tests_perf == p.n_tests
-                    if x.health_status != INF
-                     x.notified = false
-                     x.n_tests_perf = 0
-                    else
-                     x.time_since_testing = p.time_between_tests
-                    end
-
-                elseif x.n_tests_perf == p.n_tests + 1
                     x.notified = false
                     x.n_tests_perf = 0
                 end
@@ -863,9 +854,8 @@ function time_update(st,sim,rng)
     for x in humans
 
       #  rng = MersenneTwister(246*st*sim*x.idx)
-
-      # Taiye (2025.11.23):
-        if x.testedpos && (!x.reported || (x.health_status == INF && x.iso))
+        if x.testedpos && !x.reported # Taiye (2025.10.10)
+                # rng = MersenneTwister(246*st*sim*x.idx) # Taiye (2025.11.11): Faster here
                 send_notification(x,p.not_swit,st,sim,rng)
         end
     end
