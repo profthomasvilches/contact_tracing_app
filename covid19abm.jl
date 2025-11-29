@@ -131,8 +131,7 @@ end
     seasonal::Bool = false ## seasonal betas or not
     popsize::Int64 = 10000
     prov::Symbol = :ontario
-    calibration::Bool = false
-    calibration2::Bool = false 
+
     start_several_inf::Bool = true
     modeltime::Int64 = 365
     initialinf::Int64 = 1
@@ -410,7 +409,7 @@ function main(ip::ModelParameters,sim::Int64)
 
         # Taiye (2025.06.12): sw might be a scalar
         # nra[st]+= sw[6]
-        nra[st] += sw
+        #nra[st] += sw
 
         # end of day
 
@@ -1066,6 +1065,8 @@ end
 export move_to_pre
 
 function testing_infection(x::Human, teste)
+
+    println("Testing infection ", x.idx)
     x.tstd = true
     pp = _get_prob_test(x,teste,p.test_sens)
 
@@ -1358,46 +1359,6 @@ function perform_contacts(x,gpw,grp_sample,xhealth)
             ycnt == 0 && continue # (Taiye 2025.07.22; changed in meeting)
             y.idx == x.idx && continue # Taiye 2025.07.30: verifies that indexes are not the same
             
-#             if y.has_app && x.has_app
-
-#                x_len = length(x.contacts[1])
- #               y_len = length(y.contacts[1])
-
-  #              resize!(x.contacts[1], x.ncontacts_day + 1)
-   #             resize!(y.contacts[1], y.ncontacts_day + 1)
-
-    #            for i = x_len+1:length(x.contacts[1])
-     #               x.contacts[1][i] = 0
-      #          end
-       #         for j = y_len+1:length(y.contacts[1])
-        #            y.contacts[1][j] = 0
-         #       end
-          #      
-           #     x.contacts[1][x.ncontacts_day + 1] = y.idx
-            #    y.contacts[1][y.ncontacts_day + 1] = x.idx
-                
-             #   x.ncontacts_day += 1
-              #  y.ncontacts_day += 1
-
-
-                # Taiye (2025.07.23)
-#                x_con_vec = repeat([0],x.ncontacts_day+1)
- #               y_con_vec = repeat([0],y.ncontacts_day+1)
-  #              for i = 1:length(x.contacts[1])
-   #                 x_con_vec[i] = deepcopy(x.contacts[1][i])
-    #            end
-     #           x.contacts[1] = deepcopy(x_con_vec)
-      #          for i = 1:length(y.contacts[1])
-       #             y_con_vec[i] = deepcopy(y.contacts[1][i])
-        #        end
-         #       y.contacts[1] = deepcopy(y_con_vec)
-
-          #      x.ncontacts_day = x.ncontacts_day+1
-          #      x.contacts[1][x.ncontacts_day] = y.idx
-           #     y.ncontacts_day = y.ncontacts_day+1
-            #    y.contacts[1][y.ncontacts_day] = x.idx
-            # end
-
 
 # Taiye (2025.07.23): Testing boundserror
             if y.has_app && x.has_app
