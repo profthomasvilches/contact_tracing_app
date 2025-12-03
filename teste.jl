@@ -86,6 +86,7 @@ _get_model_state(st, hmatrix) ## this datacollection needs to be at the start of
 dyntrans(st, grps,sim)
 sw = time_update(st,sim,rng) ###update the system
 
+x
 #* That's working fine
 
 #! Testing if a symptomatic isolates and send notification
@@ -132,6 +133,8 @@ _get_model_state(st, hmatrix) ## this datacollection needs to be at the start of
 dyntrans(st, grps,sim)
 sw = time_update(st,sim,rng) ###update the system
 
+y
+
 #* They are testing
 [humans[i].pp for i in [6, 9, 13]]
 
@@ -140,18 +143,23 @@ humans[6].iso
 humans[6].isolation_days
 humans[6].exp
 
-
-#! Testing if a the notified person who tested positive also isolates
- _get_prob_test(y,teste,p.test_sens) #p.test_sens == 1 set prob to 1
-
+y = humans[6]
+y
 #! Testing if the notified person who is isolated reset isolation if symptomatic
 #? Forcing symptoms
+
+y.daysisolation = y.isolation_days+1
+
+_get_model_state(st, hmatrix) ## this datacollection needs to be at the start of the for loop
+dyntrans(st, grps,sim)
+sw = time_update(st,sim,rng) ###update the system
 
 
 humans[6].swap = PRE
 humans[6].swap_status = PRE
 
 
+y.exp = y.tis   ## force the move to latent in the next time step.
 
 st = 1
 
@@ -167,6 +175,8 @@ dyntrans(st, grps,sim)
 sw = time_update(st,sim,rng) ###update the system
 
 y.health
+y.iso
+
 
 humans[6].isolation_days
 humans[6].daysisolation
